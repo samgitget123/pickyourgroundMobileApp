@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import WelcomeScreen from './screens/WelcomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import DrawerNavigator from './screens/DrawerNavigator'; // <-- NEW
-
+import GroundSlots from './screens/GroundSlots';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -36,6 +36,8 @@ export default function App() {
             )}
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="MainApp" component={DrawerNavigator} />
+           
+
           </>
         </Stack.Navigator>
       </NavigationContainer>
