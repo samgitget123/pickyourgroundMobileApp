@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import WelcomeScreen from './screens/WelcomeScreen';
 import LoginScreen from './screens/LoginScreen';
-import HomeScreen from './screens/HomeSceen';
+import DrawerNavigator from './screens/DrawerNavigator'; // <-- NEW
 
 const Stack = createNativeStackNavigator();
 
@@ -30,11 +30,13 @@ export default function App() {
     <PaperProvider>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {firstLaunch && (
-            <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          )}
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <>
+            {firstLaunch && (
+              <Stack.Screen name="Welcome" component={WelcomeScreen} />
+            )}
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="MainApp" component={DrawerNavigator} />
+          </>
         </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>

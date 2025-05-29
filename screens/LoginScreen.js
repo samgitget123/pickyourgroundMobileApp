@@ -19,7 +19,7 @@ export default function LoginScreen({ navigation }) {
         secureTextEntry
         style={styles.input}
       />
-      <Button mode="contained" onPress={() => navigation.replace('Home')}>
+      <Button mode="contained" onPress={() => navigation.replace('MainApp')}>
         Login
       </Button>
     </View>
