@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   },
   relatedImage: {
     width: 120,
-    height: 80,
+    height: 100,
     borderRadius: 8,
   },
   bookNowBtn: {
