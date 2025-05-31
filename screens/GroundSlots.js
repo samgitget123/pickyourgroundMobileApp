@@ -7,11 +7,16 @@ import {
   TouchableOpacity,
   Platform,
   Modal,
+  Image,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Groundslots } from '../Helpers/GroundslotSchedules';
+import Icon from 'react-native-vector-icons/FontAwesome';
+
 
 export default function GroundSlots() {
   const navigation = useNavigation();
@@ -22,9 +27,15 @@ export default function GroundSlots() {
   //usestates
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
+  const [name, setName] = useState(""); // State for Name
+  const [email, setEmail] = useState(""); // State for Email
+  const [mobile, setMobile] = useState(""); // State for Mobile
+  const [price, setPrice] = useState('');
+  const [prepaid, setPrepaid] = useState("");  // Prepaid Amount
+  const [paymentStatus, setPaymentStatus] = useState("pending");
   const [selectedSlots, setSelectedSlots] = useState([]);
   const [cartVisible, setCartVisible] = useState(false);
-
+  const remainingAmount = Number(price) - Number(prepaid || 0);
   //this function converts slot number to as time formats with 30 minutes interval with AM/PM
   const formatTime = (floatVal) => {
     const totalMinutes = parseFloat(floatVal) * 60;
@@ -92,7 +103,7 @@ export default function GroundSlots() {
   //   return h + (m >= 30 ? 0.5 : 0);
   // };
 
-//Here we filtering the available slots
+  //Here we filtering the available slots
   const filteredAvailableSlots = Groundslots.filter(slot => {
     const slotTime = parseFloat(slot.slot);
     const isBooked = bookedSlotIds.includes(slot.id);
@@ -224,6 +235,27 @@ export default function GroundSlots() {
 
     return `${formatTime(startSlot)} - ${formatTime(endSlot)} (${durationStr.trim()})`;
   };
+  //handleBooking
+const handleBooking = () => {
+  Alert.alert(
+    'Confirm Booking',
+    'Are you sure you want to book these slots?',
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'OK',
+        onPress: () => {
+          setCartVisible(false); // Close the modal
+          navigation.navigate('Slots'); // Navigate to Slots screen
+        },
+      },
+    ],
+    { cancelable: true }
+  );
+};
 
   return (
     <View style={styles.container}>
@@ -302,16 +334,34 @@ export default function GroundSlots() {
         </View>
       </View>
 
-      {selectedSlots.length > 0 && (
+      {/* {selectedSlots.length > 0 && (
         <TouchableOpacity
           style={styles.cartButton}
           onPress={() => setCartVisible(true)}
         >
           <Text style={styles.cartText}>Cart ({selectedSlots.length})</Text>
         </TouchableOpacity>
+      )} */}
+      {selectedSlots.length > 0 && (
+        <TouchableOpacity
+          style={styles.cartButton}
+          onPress={() => setCartVisible(true)}
+        >
+          <View style={styles.shadowWrapper}>
+            <View style={styles.cartCircle}>
+              <Image
+                source={require('../assets/shopping-cart.png')}
+                style={styles.cartIcon}
+              />
+            </View>
+          </View>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{selectedSlots.length}</Text>
+          </View>
+        </TouchableOpacity>
       )}
 
-      <Modal
+      {/* <Modal
         visible={cartVisible}
         animationType="slide"
         transparent={true}
@@ -323,16 +373,128 @@ export default function GroundSlots() {
             <Text style={{ marginVertical: 10, fontWeight: '600', fontSize: 16 }}>
               {formatSelectedSlotsDuration(selectedSlots)}
             </Text>
-            {/* {selectedSlots
-              .sort((a, b) => parseFloat(a.slot) - parseFloat(b.slot))
-              .map((s, idx) => (
-                <Text key={idx} style={{ marginVertical: 5 }}>
-                  {getSlotTimeRange(s.slot)}
-                </Text>
-              ))} */}
+           
             <Button mode="contained" onPress={() => setCartVisible(false)} style={styles.buttoncolor}>Close</Button>
           </View>
         </View>
+      </Modal> */}
+      <Modal
+        visible={cartVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCartVisible(false)}
+      >
+      <View style={styles.modalOverlay}>
+  <View style={styles.modalContent}>
+    <Text style={styles.modalTitle}>Booking Your Slot</Text>
+
+    <Text style={styles.subHeading}>
+      {formatSelectedSlotsDuration(selectedSlots)}
+    </Text>
+
+    {/* Input Fields */}
+    <View style={styles.form}>
+      {/* Name Input */}
+      <View style={styles.inputGroup}>
+        <Icon name="user" size={20} color="#006849" style={styles.icon} />
+        <TextInput
+          placeholder="Enter your Name"
+          style={styles.input}
+          value={name}
+          onChangeText={setName}
+        />
+      </View>
+
+      {/* Mobile Input */}
+      <View style={styles.inputGroup}>
+        <Icon name="phone" size={20} color="#006849" style={styles.icon} />
+        <TextInput
+          placeholder="Enter your Mobile Number"
+          style={styles.input}
+          keyboardType="phone-pad"
+          maxLength={13}
+          value={mobile}
+          onChangeText={(text) => {
+            let cleaned = text.replace(/\D/g, '');
+            if (cleaned.startsWith('91')) {
+              setMobile(`+${cleaned.slice(0, 12)}`);
+            } else {
+              setMobile(`+91${cleaned.slice(0, 10)}`);
+            }
+          }}
+        />
+      </View>
+
+      {/* Total Amount */}
+      <View style={styles.inputGroup}>
+        <Icon name="money" size={20} color="#006849" style={styles.icon} />
+        <TextInput
+          placeholder="Total Amount"
+          style={styles.input}
+          keyboardType="numeric"
+          value={price}
+          onChangeText={setPrice}
+        />
+      </View>
+
+      {/* Prepaid Amount */}
+      <View style={styles.inputGroup}>
+        <Icon name="rupee" size={20} color="#006849" style={styles.icon} />
+        <TextInput
+          placeholder="Prepaid Amount"
+          style={styles.input}
+          keyboardType="numeric"
+          value={prepaid}
+          onChangeText={setPrepaid}
+        />
+      </View>
+    </View>
+
+    {/* Remaining Amount */}
+    <Text style={styles.remaining}>
+      Remaining Amount: ₹ {remainingAmount > 0 ? remainingAmount : 0}
+    </Text>
+
+    {/* Payment Status */}
+    <Text style={styles.label}>Payment Status:</Text>
+    <View style={styles.radioGroup}>
+      {['pending', 'success', 'failed'].map((status) => (
+        <TouchableOpacity
+          key={status}
+          style={styles.radioOption}
+          onPress={() => setPaymentStatus(status)}
+        >
+          <View style={styles.radioCircle}>
+            {paymentStatus === status && <View style={styles.radioDot} />}
+          </View>
+          <Text style={styles.radioLabel}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+
+    {/* Buttons */}
+    <View style={styles.buttonGroup}>
+      <Button
+        mode="contained"
+        onPress={() => setCartVisible(false)}
+        style={[styles.buttonSecondary, styles.buttonSpacing]}
+      >
+        Close
+      </Button>
+      <Button
+        mode="contained"
+        onPress={handleBooking}
+        disabled={selectedSlots.length === 0 || !name || !mobile}
+        style={styles.buttonPrimary}
+      >
+        Confirm
+      </Button>
+    </View>
+  </View>
+</View>
+
       </Modal>
     </View>
   );
@@ -350,6 +512,116 @@ const styles = StyleSheet.create({
   availableSlot: { backgroundColor: '#28a745', width: '100%' },
   buttonText: { color: 'white' },
   buttoncolor: { backgroundColor: '#006849' },
+  buttonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+    color: '#006849',
+    textAlign: 'center',
+  },
+  subHeading: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  form: {
+    marginBottom: 10,
+  },
+  inputGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f1f1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  icon: {
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    height: 40,
+    fontSize: 15,
+    color: '#333',
+  },
+  remaining: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginVertical: 10,
+    textAlign: 'center',
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  radioCircle: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#006849',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  radioDot: {
+    height: 10,
+    width: 10,
+    borderRadius: 5,
+    backgroundColor: '#006849',
+  },
+  radioLabel: {
+    fontSize: 14,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 15,
+  },
+  buttonSecondary: {
+    flex: 1,
+    backgroundColor: '#ccc',
+  },
+  buttonPrimary: {
+    flex: 1,
+    backgroundColor: '#006849',
+  },
+  buttonSpacing: {
+    marginRight: 10,
+  },
+
   bookedSlot: {
     backgroundColor: '#dc3545',
     color: '#fff',
@@ -364,12 +636,53 @@ const styles = StyleSheet.create({
   datepickerfield: { margin: 10 },
   cartButton: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 30,
     right: 20,
-    backgroundColor: '#007bff',
+    backgroundColor: '#fff',
+    padding: 10,
     borderRadius: 30,
-    padding: 15,
+    elevation: 5,
   },
+
+  cartIcon: {
+    width: 30,
+    height: 30,
+    tintColor: '#006849', // optional: tint the icon green
+  },
+
+  badge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: '#006849',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  shadowWrapper: {
+    // This is the outer wrapper without overflow: 'hidden'
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  // cartButton: {
+  //   position: 'absolute',
+  //   bottom: 20,
+  //   right: 20,
+  //   backgroundColor: '#007bff',
+  //   borderRadius: 30,
+  //   padding: 15,
+  // },
   cartText: { color: '#fff', fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: '#000000aa', justifyContent: 'center' },
   modalContent: { margin: 20, backgroundColor: '#fff', borderRadius: 10, padding: 20 },
@@ -377,6 +690,18 @@ const styles = StyleSheet.create({
   pastSlot: {
     backgroundColor: '#007bff', // blue for past slots today
   },
-
+  cartCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 30,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5, // for Android shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
 
 });
