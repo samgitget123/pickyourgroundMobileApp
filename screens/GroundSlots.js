@@ -10,6 +10,7 @@ import {
   Image,
   TextInput,
   Alert,
+  KeyboardAvoidingView
 } from 'react-native';
 import { Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -55,14 +56,6 @@ export default function GroundSlots() {
     return `${formatTime(start)} - ${formatTime(end === 24 ? 0 : end)}`;
   };
 
-  // const isToday = (date) => {
-  //   const now = new Date();
-  //   return (
-  //     date.getDate() === now.getDate() &&
-  //     date.getMonth() === now.getMonth() &&
-  //     date.getFullYear() === now.getFullYear()
-  //   );
-  // };
 
   //this function check today date is true or false
   const isToday = (date) => {
@@ -73,15 +66,6 @@ export default function GroundSlots() {
     return localDate.getTime() === localNow.getTime();
   };
 
-
-  // const getCurrentFloatTime = () => {
-  //   const now = new Date();
-  //   const hour = now.getHours();
-  //   const minutes = now.getMinutes();
-  //   if (minutes === 0) return hour;
-  //   if (minutes <= 30) return hour + 0.5;
-  //   return hour + 1;
-  // };
 
   //it gives current time
   const getCurrentFloatTime = () => {
@@ -95,13 +79,6 @@ export default function GroundSlots() {
 
   //it converting time to as string
   const getFloatTimeFromSlotString = (slotString) => parseFloat(slotString);
-
-  // const getFloatTimeFromSlotString = (slotTimeString) => {
-  //   const d = new Date(slotTimeString);
-  //   const h = d.getHours();
-  //   const m = d.getMinutes();
-  //   return h + (m >= 30 ? 0.5 : 0);
-  // };
 
   //Here we filtering the available slots
   const filteredAvailableSlots = Groundslots.filter(slot => {
@@ -153,12 +130,7 @@ export default function GroundSlots() {
       alert('⚠️ Please select slots in sequential order.');
     }
   };
-  // const isPastSlot = (slot) => {
 
-  //   const slotTime = parseFloat(slot.slot);
-  //     console.log(selectedDate, 'pastslot')
-  //   return isToday(selectedDate) && slotTime < getCurrentFloatTime();
-  // };
 
   //it will check the past slots
   const isPastSlot = (slot) => {
@@ -167,39 +139,7 @@ export default function GroundSlots() {
     return isToday(selectedDate) && slotTime < getCurrentFloatTime();
   };
 
-  //format all slots as time period
-  // const formatslot = (selectedSlots) => {
-  //   // console.log(selectedSlots.slot , 'timeformat')
-  //   if (!Array.isArray(selectedSlots) || selectedSlots.length === 0) return "";
 
-  //   const formatTime = (hours, minutes) => {
-  //     const period = hours >= 12 ? "PM" : "AM";
-  //     const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
-  //     return `${formattedHours}:${minutes} ${period}`;
-  //   };
-
-  //   const firstSlot = String(selectedSlots[0]);
-  //   const lastSlot = String(selectedSlots[selectedSlots.length - 1]);
-
-  //   const isValidSlot = (slot) => /^(\d+(\.\d+)?)$/.test(slot);
-
-  //   if (!isValidSlot(firstSlot) || !isValidSlot(lastSlot)) {
-  //     console.error("Invalid slot format detected.");
-  //     return "Invalid slot format";
-  //   }
-
-  //   const [startHours, startHalf] = firstSlot.split(".").map(Number);
-  //   const startMinutes = startHalf === 0 ? "00" : "30";
-  //   const startTime = formatTime(startHours, startMinutes);
-
-  //   const [endHours, endHalf] = lastSlot.split(".").map(Number);
-  //   const endTime = formatTime(
-  //     endHours + (endHalf === 0 ? 0 : 1),
-  //     endHalf === 0 ? "30" : "00"
-  //   );
-
-  //   return `${startTime} - ${endTime}`;
-  // };
 
   //It return the selected slots duration
   const formatSelectedSlotsDuration = (slots) => {
@@ -236,26 +176,26 @@ export default function GroundSlots() {
     return `${formatTime(startSlot)} - ${formatTime(endSlot)} (${durationStr.trim()})`;
   };
   //handleBooking
-const handleBooking = () => {
-  Alert.alert(
-    'Confirm Booking',
-    'Are you sure you want to book these slots?',
-    [
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
-      {
-        text: 'OK',
-        onPress: () => {
-          setCartVisible(false); // Close the modal
-          navigation.navigate('Slots'); // Navigate to Slots screen
+  const handleBooking = () => {
+    Alert.alert(
+      'Confirm Booking',
+      'Are you sure you want to book these slots?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
         },
-      },
-    ],
-    { cancelable: true }
-  );
-};
+        {
+          text: 'OK',
+          onPress: () => {
+            setCartVisible(false); // Close the modal
+            navigation.navigate('Slots'); // Navigate to Slots screen
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -384,118 +324,125 @@ const handleBooking = () => {
         transparent={true}
         onRequestClose={() => setCartVisible(false)}
       >
-      <View style={styles.modalOverlay}>
-  <View style={styles.modalContent}>
-    <Text style={styles.modalTitle}>Booking Your Slot</Text>
-
-    <Text style={styles.subHeading}>
-      {formatSelectedSlotsDuration(selectedSlots)}
-    </Text>
-
-    {/* Input Fields */}
-    <View style={styles.form}>
-      {/* Name Input */}
-      <View style={styles.inputGroup}>
-        <Icon name="user" size={20} color="#006849" style={styles.icon} />
-        <TextInput
-          placeholder="Enter your Name"
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-        />
-      </View>
-
-      {/* Mobile Input */}
-      <View style={styles.inputGroup}>
-        <Icon name="phone" size={20} color="#006849" style={styles.icon} />
-        <TextInput
-          placeholder="Enter your Mobile Number"
-          style={styles.input}
-          keyboardType="phone-pad"
-          maxLength={13}
-          value={mobile}
-          onChangeText={(text) => {
-            let cleaned = text.replace(/\D/g, '');
-            if (cleaned.startsWith('91')) {
-              setMobile(`+${cleaned.slice(0, 12)}`);
-            } else {
-              setMobile(`+91${cleaned.slice(0, 10)}`);
-            }
-          }}
-        />
-      </View>
-
-      {/* Total Amount */}
-      <View style={styles.inputGroup}>
-        <Icon name="money" size={20} color="#006849" style={styles.icon} />
-        <TextInput
-          placeholder="Total Amount"
-          style={styles.input}
-          keyboardType="numeric"
-          value={price}
-          onChangeText={setPrice}
-        />
-      </View>
-
-      {/* Prepaid Amount */}
-      <View style={styles.inputGroup}>
-        <Icon name="rupee" size={20} color="#006849" style={styles.icon} />
-        <TextInput
-          placeholder="Prepaid Amount"
-          style={styles.input}
-          keyboardType="numeric"
-          value={prepaid}
-          onChangeText={setPrepaid}
-        />
-      </View>
-    </View>
-
-    {/* Remaining Amount */}
-    <Text style={styles.remaining}>
-      Remaining Amount: ₹ {remainingAmount > 0 ? remainingAmount : 0}
-    </Text>
-
-    {/* Payment Status */}
-    <Text style={styles.label}>Payment Status:</Text>
-    <View style={styles.radioGroup}>
-      {['pending', 'success', 'failed'].map((status) => (
-        <TouchableOpacity
-          key={status}
-          style={styles.radioOption}
-          onPress={() => setPaymentStatus(status)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+          keyboardVerticalOffset={100}
         >
-          <View style={styles.radioCircle}>
-            {paymentStatus === status && <View style={styles.radioDot} />}
-          </View>
-          <Text style={styles.radioLabel}>
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+          <ScrollView
+            contentContainerStyle={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.modalTitle}>Booking Your Slot</Text>
 
-    {/* Buttons */}
-    <View style={styles.buttonGroup}>
-      <Button
-        mode="contained"
-        onPress={() => setCartVisible(false)}
-        style={[styles.buttonSecondary, styles.buttonSpacing]}
-      >
-        Close
-      </Button>
-      <Button
-        mode="contained"
-        onPress={handleBooking}
-        disabled={selectedSlots.length === 0 || !name || !mobile}
-        style={styles.buttonPrimary}
-      >
-        Confirm
-      </Button>
-    </View>
-  </View>
-</View>
+            <Text style={styles.subHeading}>
+              {formatSelectedSlotsDuration(selectedSlots)}
+            </Text>
 
+            {/* Input Fields */}
+            <View style={styles.form}>
+              {/* Name Input */}
+              <View style={styles.inputGroup}>
+                <Icon name="user" size={20} color="#006849" style={styles.icon} />
+                <TextInput
+                  placeholder="Enter your Name"
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
+
+              {/* Mobile Input */}
+              <View style={styles.inputGroup}>
+                <Icon name="phone" size={20} color="#006849" style={styles.icon} />
+                <TextInput
+                  placeholder="Enter your Mobile Number"
+                  style={styles.input}
+                  keyboardType="phone-pad"
+                  maxLength={13}
+                  value={mobile}
+                  onChangeText={(text) => {
+                    let cleaned = text.replace(/\D/g, '');
+                    if (cleaned.startsWith('91')) {
+                      setMobile(`+${cleaned.slice(0, 12)}`);
+                    } else {
+                      setMobile(`+91${cleaned.slice(0, 10)}`);
+                    }
+                  }}
+                />
+              </View>
+
+              {/* Total Amount */}
+              <View style={styles.inputGroup}>
+                <Icon name="money" size={20} color="#006849" style={styles.icon} />
+                <TextInput
+                  placeholder="Total Amount"
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={price}
+                  onChangeText={setPrice}
+                />
+              </View>
+
+              {/* Prepaid Amount */}
+              <View style={styles.inputGroup}>
+                <Icon name="rupee" size={20} color="#006849" style={styles.icon} />
+                <TextInput
+                  placeholder="Prepaid Amount"
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={prepaid}
+                  onChangeText={setPrepaid}
+                />
+              </View>
+            </View>
+
+            {/* Remaining Amount */}
+            <Text style={styles.remaining}>
+              Remaining Amount: ₹ {remainingAmount > 0 ? remainingAmount : 0}
+            </Text>
+
+            {/* Payment Status */}
+            <Text style={styles.label}>Payment Status:</Text>
+            <View style={styles.radioGroup}>
+              {['pending', 'success', 'failed'].map((status) => (
+                <TouchableOpacity
+                  key={status}
+                  style={styles.radioOption}
+                  onPress={() => setPaymentStatus(status)}
+                >
+                  <View style={styles.radioCircle}>
+                    {paymentStatus === status && <View style={styles.radioDot} />}
+                  </View>
+                  <Text style={styles.radioLabel}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Buttons */}
+            <View style={styles.buttonGroup}>
+              <Button
+                mode="contained"
+                onPress={() => setCartVisible(false)}
+                style={[styles.buttonSecondary, styles.buttonSpacing]}
+              >
+                Close
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleBooking}
+                disabled={selectedSlots.length === 0 || !name || !mobile}
+                style={styles.buttonPrimary}
+              >
+                Confirm
+              </Button>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
+
     </View>
   );
 }

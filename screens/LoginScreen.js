@@ -2,10 +2,41 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { useApi } from '../src/contexts/ApiContext';
 export default function LoginScreen({ navigation }) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const { BASE_URL } = useApi();
+  console.log(BASE_URL, 'base_url');
+  const handleLogin = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/user/loginUser`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: phoneNumber,
+          password: password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('Login success:', data);
+        setErrorMessage('');
+        navigation.replace('MainApp');
+      } else {
+        setErrorMessage(data.message || 'Invalid phone number or password');
+      }
+
+    } catch (error) {
+      console.error('Login error:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -30,12 +61,18 @@ export default function LoginScreen({ navigation }) {
           />
           <Button
             mode="contained"
-            onPress={() => navigation.replace('MainApp')}
+            onPress={handleLogin}
             style={styles.loginBtn}
           >
             Login
           </Button>
         </View>
+        {errorMessage ? (
+  <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>
+    {errorMessage}
+  </Text>
+) : null}
+
       </View>
     </SafeAreaView>
   );

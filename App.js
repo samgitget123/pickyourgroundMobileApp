@@ -8,6 +8,10 @@ import WelcomeScreen from './screens/WelcomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import DrawerNavigator from './screens/DrawerNavigator'; // <-- NEW
 import GroundSlots from './screens/GroundSlots';
+// ✅ Correct
+import { ApiProvider } from './src/contexts/ApiContext';
+
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -27,6 +31,7 @@ export default function App() {
   if (firstLaunch === null) return null;
 
   return (
+    <ApiProvider>
     <PaperProvider>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -43,5 +48,6 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>
+    </ApiProvider>
   );
 }
