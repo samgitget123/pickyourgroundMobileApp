@@ -1,16 +1,50 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, FlatList, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { Button, Card } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-
-const groundImages = [
-  { id: '1', src: require('../assets/sample.jpg') },
-  { id: '2', src: require('../assets/icon.png') },
-  { id: '3', src: require('../assets/adaptive-icon.png') },
-];
+import { useApi } from '../src/contexts/ApiContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+// ✅ Define your constants properly
+//const BASE_URL = 'http://localhost:5000/api';
+//const userId = 'fad51424-d5db-43f4-aa66-b0b75e2a233c';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const [grounds, setGrounds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [grounddetails, setGroundDetails] = useState([]);
+  const { BASE_URL } = useApi();
+  const IMAGE_BASE_URL = `http://192.168.1.23:5000/uploads`;
+
+
+  useEffect(() => {
+    const fetchGrounds = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('userData');
+        const user = storedUser ? JSON.parse(storedUser) : null;
+        if (!user || !user.user) {
+          console.error('User ID not found in AsyncStorage');
+          return;
+        }
+        const grounddetails = user.user;
+        setGroundDetails(grounddetails);
+        console.log(grounddetails, 'groundetails')
+        const user_id = user.user.id;
+        //console.log(user_id , 'user_id')
+        const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
+        //console.log(response, 'res')
+        const data = await response.json();
+        console.log(data[0], '----------data----------')
+        setGrounds(data);
+      } catch (error) {
+        console.error('Error fetching grounds:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGrounds();
+  }, []);
 
   const handleBookNow = () => {
     navigation.navigate('Slots');
@@ -18,30 +52,81 @@ export default function HomeScreen() {
 
   const renderImage = ({ item }) => (
     <TouchableOpacity onPress={handleBookNow} style={styles.imageWrapper}>
-      <Card style={styles.card}>
-        <Image source={item.src} style={styles.relatedImage} />
-      </Card>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.imageScrollView} // 👈 new style
+      >
+        {item.photo?.map((photo, index) => (
+          <Image
+            key={index}
+            source={{ uri: `${IMAGE_BASE_URL}/${photo}` }}
+            style={styles.relatedImage}
+          />
+        ))}
+      </ScrollView>
+
     </TouchableOpacity>
   );
 
+  // const renderImage = ({ item }) => (
+  //   <TouchableOpacity onPress={handleBookNow} style={styles.imageWrapper}>
+  //     <Card style={styles.card}>
+  //       {item.photo?.map((photo, index) => (
+  //         <Image
+  //           source={{ uri: `${IMAGE_BASE_URL}/${photo}` }}
+  //           style={styles.relatedImage}
+  //         />
+
+  //       ))}
+  //     </Card>
+  //   </TouchableOpacity>
+  // );
+
+
+  if (loading) {
+    return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.groundName}>🏏 Vkings SportZ Arena</Text>
-      <Image source={require('../assets/sample.jpg')} style={styles.mainImage} />
+      <Text style={styles.appName}>🏏 Pick Your Ground</Text>
+
+      {grounds.length > 0 && grounds[0].photo?.length > 0 && (
+
+        <Image
+          source={{ uri: `${IMAGE_BASE_URL}/${grounds[0].photo[0]}` }}
+          style={styles.mainImage}
+          resizeMode="cover"
+        />
+      )}
+
 
       <View style={styles.imagesSection}>
-        <Text style={styles.sectionTitle}>Available Grounds</Text>
+        <Text style={styles.sectionTitle}>Pick Your Slot</Text>
         <FlatList
-          data={groundImages}
-          keyExtractor={(item) => item.id}
+          data={grounds}
+          keyExtractor={(item) => item._id}
           horizontal
           renderItem={renderImage}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 15 }}
         />
+       <View style={styles.groundDetailsContainer}>
+  <Text style={styles.groundName}>
+    {grounds.length > 0 ? grounds[0].name : 'No Ground Found'}
+  </Text>
+  <Text style={styles.groundCity}>
+    {grounds.length > 0 ? grounds[0].city : ''}
+  </Text>
+</View>
+
+
         <Button mode="contained" onPress={handleBookNow} style={styles.bookNowBtn}>
           Book Now
         </Button>
+       
       </View>
     </View>
   );
@@ -49,12 +134,24 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9f9f9' },
+  groundDetailsContainer: {
+  alignItems: 'center',
+  marginVertical: 0,
+  paddingHorizontal: 0,
+},
   groundName: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '400',
     textAlign: 'center',
-    marginTop: 25,
-    color: '#006849',
+    marginTop: 10,
+    color: '#000',
+  },
+    appName: {
+    fontSize: 24,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginTop: 10,
+    color: '#000',
   },
   mainImage: {
     width: '90%',
@@ -64,29 +161,41 @@ const styles = StyleSheet.create({
     marginVertical: 15,
   },
   imagesSection: {
-    paddingTop: 10,
+    paddingVertical: 10,
+    backgroundColor: '#E8E8E8',
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '400',
     marginLeft: 15,
     marginBottom: 10,
     color: '#333',
+    textAlign: 'center'
   },
   imageWrapper: {
-    marginRight: 12,
+    marginRight: 15,
+  },
+  imageScrollView: {
+    width: '100%',
+  },
+  relatedImage: {
+    width: 200,
+    height: 140,
+    resizeMode: 'cover',
+    marginRight: 10,
+    borderRadius: 8,
   },
   card: {
     borderRadius: 12,
     overflow: 'hidden',
     elevation: 3,
+    width: 400, // keep this or change as per design
+    height: 140,
+    backgroundColor: '#fff',
   },
-  relatedImage: {
-    width: 140,
-    height: 100,
-  },
+
   bookNowBtn: {
-    marginTop: 30,
+    marginTop: 10,
     alignSelf: 'center',
     width: 160,
     backgroundColor: '#006849',

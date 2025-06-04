@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApi } from '../src/contexts/ApiContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function LoginScreen({ navigation }) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
@@ -24,10 +25,14 @@ export default function LoginScreen({ navigation }) {
       });
 
       const data = await response.json();
+      console.log(data, 'data');
 
       if (response.ok) {
+           // ✅ Save user details in AsyncStorage
+      await AsyncStorage.setItem('userData', JSON.stringify(data));
         console.log('Login success:', data);
         setErrorMessage('');
+
         navigation.replace('MainApp');
       } else {
         setErrorMessage(data.message || 'Invalid phone number or password');

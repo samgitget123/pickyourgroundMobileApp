@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,11 +17,11 @@ import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Groundslots } from '../Helpers/GroundslotSchedules';
 import Icon from 'react-native-vector-icons/FontAwesome';
-
-
+import { useApi } from '../src/contexts/ApiContext';
+import convertSlotToTimeRange from '../Helpers/ConvertSlotToTimeRange';
 export default function GroundSlots() {
   const navigation = useNavigation();
-
+ const { BASE_URL } = useApi();
   //dummy booked slots
   const bookedSlotIds = ["5", "10", "23", "35", "25", "26", "27", "28", "29", "30"];
 
@@ -37,7 +37,55 @@ export default function GroundSlots() {
   const [selectedSlots, setSelectedSlots] = useState([]);
   const [cartVisible, setCartVisible] = useState(false);
   const remainingAmount = Number(price) - Number(prepaid || 0);
-  //this function converts slot number to as time formats with 30 minutes interval with AM/PM
+  const [groundData, setGroundData] = useState([]);
+
+  
+  useEffect(() => {
+  const fetchGroundDetails = async () => {
+    try {
+      // Convert selectedDate to 'YYYY-MM-DD' format string
+      let formattedDate = "";
+
+      if (selectedDate instanceof Date) {
+        // If selectedDate is a Date object
+        formattedDate = selectedDate.toISOString().slice(0, 10);
+      } else if (typeof selectedDate === "string") {
+        // If it's a string (like ISO string), slice first 10 chars
+        formattedDate = selectedDate.slice(0, 10);
+      } else {
+        throw new Error("selectedDate is not a valid Date or string");
+      }
+
+      console.log("Formatted Date for API:", formattedDate);
+
+      const res = await fetch(`${BASE_URL}/ground/GNDN8C9YFQC5?date=${formattedDate}`);
+      console.log(res, "API response");
+
+      if (!res.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const data = await res.json();
+      console.log("Booked Slots:", data.slots.booked);
+
+      setGroundData(data);
+    } catch (error) {
+      console.error("❌ Error fetching ground details:", error);
+    }
+  };
+console.log(groundData, 'grounddata')
+  if (selectedDate) {
+    fetchGroundDetails();
+  }
+}, [selectedDate]);
+
+ const formatSlot = (slot) => {
+    return slot; // Example: return formatted slot
+  };
+const bookedslotsbydate = groundData?.slots?.booked?.map(formatSlot) || [];
+console.log(bookedslotsbydate, 'bookedslotsbydate')
+//  const availableSlots = groundData.filter((slot) => !bookedslotsbydate.includes(slot.slot)) .map((slot) => slot.slot);
+
   const formatTime = (floatVal) => {
     const totalMinutes = parseFloat(floatVal) * 60;
     const hour = Math.floor(totalMinutes / 60);
@@ -258,18 +306,20 @@ export default function GroundSlots() {
         <View style={styles.column}>
           <Text style={styles.subtitle}>Booked</Text>
           <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
-            {filteredBookedSlots.length ? (
-              filteredBookedSlots.map((slot) => {
-                const timeRange = getSlotTimeRange(slot.slot);
-                return (
-                  <View key={slot.id} style={styles.slotWrapper}>
-                    <Text style={styles.bookedSlot}>{timeRange}</Text>
-                  </View>
-                );
-              })
-            ) : (
-              <Text style={styles.noSlots}>No booked slots for this date/time.</Text>
-            )}
+          {bookedslotsbydate.length ? (
+  bookedslotsbydate.map((slot, index) => {
+    // slot is string like "18.5"
+    const timeRange = convertSlotToTimeRange(slot);
+    return (
+      <View key={index} style={styles.slotWrapper}>
+        <Text style={styles.bookedSlot}>{timeRange}</Text>
+      </View>
+    );
+  })
+) : (
+  <Text style={styles.noSlots}>No booked slots for this date/time.</Text>
+)}
+
           </ScrollView>
         </View>
       </View>
