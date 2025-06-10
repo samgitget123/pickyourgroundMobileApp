@@ -32,7 +32,7 @@ export default function HomeScreen() {
         const user_id = user.user.id;
         //console.log(user_id , 'user_id')
         const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
-        //console.log(response, 'res')
+        console.log(response, '--------------------res-------------------------')
         const data = await response.json();
        // console.log(data[0].slots, '----------data----------')
         setGrounds(data);

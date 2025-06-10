@@ -79,6 +79,7 @@ export default function GroundSlots({ route }) {
       console.log("Booked Slots:", data.slots.booked);
 
       setGroundData(data);
+      console.log(groundData, 'grounddate=======================?')
     } catch (error) {
       console.error("❌ Error fetching ground details:", error);
     }
@@ -103,7 +104,7 @@ export default function GroundSlots({ route }) {
         //console.log("Formatted Date for API:", formattedDate);
 
         const res = await fetch(`${BASE_URL}/ground/${grounds[0]?.ground_id}?date=${formattedDate}`);
-        console.log(grounds[0].ground_id, 'gid');
+        console.log(grounds[0].latitude, '---------------gid-------------');
         console.log(res, "API response");
 
         if (!res.ok) {
@@ -378,10 +379,9 @@ export default function GroundSlots({ route }) {
     }
   };
 /////////////////////////Share on watsapp/////////////////////////////
-const handleWhatsAppShare = () => {
+const handleWhatsAppShare = (latitude, longitude , ground_name) => {
   try {
     const bookingData = bookingDetails?.data[0];
-
     if (!bookingData) return;
 
     const bookingId = bookingData?.book?.booking_id;
@@ -391,13 +391,11 @@ const handleWhatsAppShare = () => {
     const dueAmount = price - advance;
     const date = bookingData?.date;
     const customerName = bookingData?.name;
-    const phoneNumber = `${bookingData?.mobile}`; // Ensure this is country-code prefixed
-    // const latitude = lat;
-    // const longitude = long;
+    const phoneNumber = `${bookingData?.mobile}`; // Make sure to include country code
 
-    // const groundLocationURL = `https://www.google.com/maps?q=${longitude},${latitude}`;
+    const groundLocationURL = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
-    const message = `*🎉 Booking Confirmation 🎉*\n────────────────────────\n🔹 *Booking ID:* ${bookingId}\n📅 *Date:* ${date}\n🕒 *Slots:* ${slots}\n💰 *Price:* ₹${price}/-\n💸 *Advance Paid:* ₹${advance}/-\n💳 *Due Amount:* ₹${dueAmount}/-\n────────────────────────\nDear ${customerName},\nThank you for booking with us!\n📍 *Ground Location:*\n}`;
+    const message = `*🎉 Booking Confirmation 🎉*\n────────────────────────\n🔹 *Booking ID:* ${bookingId}\n📅 *Date:* ${date}\n🕒 *Slots:* ${slots}\n💰 *Price:* ₹${price}/-\n💸 *Advance Paid:* ₹${advance}/-\n💳 *Due Amount:* ₹${dueAmount}/-\n────────────────────────\nDear ${customerName},\nThank you for booking with us!\n📍 *Ground Location:* ${groundLocationURL}\n\nBest Regards,\n${ground_name}`;
 
     const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
@@ -407,6 +405,7 @@ const handleWhatsAppShare = () => {
     console.error(err);
   }
 };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -785,7 +784,7 @@ const handleWhatsAppShare = () => {
                     <Button
                       mode="contained"
                       style={{ marginTop: 10, backgroundColor: '#25D366' }}
-                      onPress={handleWhatsAppShare}
+                    onPress={() => handleWhatsAppShare(grounds[0]?.latitude, grounds[0]?.longitude , grounds[0]?.name)}
                       icon={({ size, color }) => (
                         <FontAwesome name="whatsapp" size={size} color={color} />
                       )}
