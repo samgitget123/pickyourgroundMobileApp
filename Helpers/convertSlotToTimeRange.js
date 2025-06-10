@@ -1,5 +1,5 @@
 
-const convertSlotToTimeRange = (slot) => {
+const ConvertSlotToTimeRange = (slot) => {
   console.log("Received slot:", slot); // Debugging
 
   // Ensure slot is a string and parse it properly
@@ -39,4 +39,4 @@ const convertSlotToTimeRange = (slot) => {
   return `${formatTime(hours, minutes)} - ${formatTime(endHours, endMinutes)}`;
 };
 
-export default convertSlotToTimeRange;
+export default ConvertSlotToTimeRange;

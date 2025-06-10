@@ -14,7 +14,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [grounddetails, setGroundDetails] = useState([]);
   const { BASE_URL } = useApi();
-  const IMAGE_BASE_URL = `http://192.168.1.23:5000/uploads`;
+  const IMAGE_BASE_URL = `http://192.168.1.3:5000/uploads`;
 
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function HomeScreen() {
         const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
         //console.log(response, 'res')
         const data = await response.json();
-        console.log(data[0], '----------data----------')
+       // console.log(data[0].slots, '----------data----------')
         setGrounds(data);
       } catch (error) {
         console.error('Error fetching grounds:', error);
@@ -47,7 +47,7 @@ export default function HomeScreen() {
   }, []);
 
   const handleBookNow = () => {
-    navigation.navigate('Slots');
+    navigation.navigate('Slots', { grounds: grounds });
   };
 
   const renderImage = ({ item }) => (
