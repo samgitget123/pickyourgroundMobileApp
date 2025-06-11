@@ -14,7 +14,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [grounddetails, setGroundDetails] = useState([]);
   const { BASE_URL } = useApi();
-  const IMAGE_BASE_URL = `http://192.168.1.3:5000/uploads`;
+  const IMAGE_BASE_URL = `http://192.168.0.143:5000/uploads`;
 
 
   useEffect(() => {
@@ -91,12 +91,16 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.appName}>🏏 Pick Your Ground</Text>
+     <Text style={styles.appName}>
+  <Text style={[styles.appName, { color: '#006849' }]}>Pick Your </Text>
+  <Text style={[styles.appName, { color: '#000' }]}>Ground</Text>
+</Text>
+
 
       {grounds.length > 0 && grounds[0].photo?.length > 0 && (
 
         <Image
-          source={{ uri: `${IMAGE_BASE_URL}/${grounds[0].photo[0]}` }}
+          source={{ uri: `${IMAGE_BASE_URL}/logo.PNG` }}
           style={styles.mainImage}
           resizeMode="cover"
         />
@@ -104,7 +108,8 @@ export default function HomeScreen() {
 
 
       <View style={styles.imagesSection}>
-        <Text style={styles.sectionTitle}>Pick Your Slot</Text>
+        <Text style={styles.sectionTitle}><Text style={[styles.sectionTitle, { color: '#006849' }]}>Pick Your </Text>
+  <Text style={[styles.sectionTitle, { color: '#000' }]}>Slot</Text></Text>
         <FlatList
           data={grounds}
           keyExtractor={(item) => item._id}
@@ -116,6 +121,9 @@ export default function HomeScreen() {
        <View style={styles.groundDetailsContainer}>
   <Text style={styles.groundName}>
     {grounds.length > 0 ? grounds[0].name : 'No Ground Found'}
+  </Text>
+    <Text style={styles.groundCity}>
+    {grounds.length > 0 ? grounds[0].description : ''}
   </Text>
   <Text style={styles.groundCity}>
     {grounds.length > 0 ? grounds[0].city : ''}

@@ -3,18 +3,23 @@
 import React from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-
+const IMAGE_BASE_URL = `http://192.168.0.143:5000/uploads`;
 export default function CustomDrawer(props) {
   return (
     <DrawerContentScrollView {...props}>
       <View style={styles.logoContainer}>
         <Image
-          source={require('../../assets/sample.jpg')} // Replace with your logo path
+          //source={require('../../assets/sample.jpg')} // Replace with your logo path
+          source={{ uri: `${IMAGE_BASE_URL}/logo.PNG` }}
           style={styles.logo}
           resizeMode="contain"
         />
-         <Text style={styles.name}>Pick Your Ground</Text>
-    
+        <Text style={styles.name}>
+          <Text style={{ color: '#006849' }}>Pick Your </Text>
+          <Text style={{ color: '#000' }}>Ground</Text>
+        </Text>
+
+
       </View>
       <DrawerItemList {...props} />
     </DrawerContentScrollView>
@@ -34,12 +39,13 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50, // This makes the image fully rounded (circle)
     borderWidth: 2,
-    borderColor: '#6200ee', // Optional: colored border around logo
+    //borderColor: '#6200ee', // Optional: colored border around logo
   },
-   name: {
+  name: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+    marginTop: 10,
   },
   email: {
     fontSize: 14,

@@ -12,6 +12,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Linking,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // or other sets like FontAwesome, Ionicons
@@ -44,7 +46,8 @@ export default function GroundSlots({ route }) {
   const [cartVisible, setCartVisible] = useState(false);
   const remainingAmount = Number(price) - Number(prepaid || 0);
   const [groundData, setGroundData] = useState([]);
-
+  const [editPrice, setEditPrice] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   //////Booking details //////////
   const [bookingDetails, setBookingDetails] = useState(null);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
@@ -312,7 +315,7 @@ export default function GroundSlots({ route }) {
         alert('✅ Booking successful! Your slots have been reserved.');
         setCartVisible(false);
         // navigation.navigate('Slots');
-
+        await fetchGroundDetailsagain();
         // Reset form and selection if needed
         setSelectedSlots([]);
         setName('');
@@ -378,33 +381,111 @@ export default function GroundSlots({ route }) {
       Alert.alert("Error", "Could not load booking details.");
     }
   };
-/////////////////////////Share on watsapp/////////////////////////////
-const handleWhatsAppShare = (latitude, longitude , ground_name) => {
-  try {
-    const bookingData = bookingDetails?.data[0];
-    if (!bookingData) return;
+  /////////////////////////Share on watsapp/////////////////////////////
+  const handleWhatsAppShare = (latitude, longitude, ground_name) => {
+    try {
+      const bookingData = bookingDetails?.data[0];
+      if (!bookingData) return;
 
-    const bookingId = bookingData?.book?.booking_id;
-    const slots = formatSelectedSlotsDuration(bookingData?.slots?.map(slot => ({ slot })));
-    const price = bookingData?.book?.price;
-    const advance = bookingData?.prepaid || 0;
-    const dueAmount = price - advance;
-    const date = bookingData?.date;
-    const customerName = bookingData?.name;
-    const phoneNumber = `${bookingData?.mobile}`; // Make sure to include country code
+      const bookingId = bookingData?.book?.booking_id;
+      const slots = formatSelectedSlotsDuration(bookingData?.slots?.map(slot => ({ slot })));
+      const price = bookingData?.book?.price;
+      const advance = bookingData?.prepaid || 0;
+      const dueAmount = price - advance;
+      const date = bookingData?.date;
+      const customerName = bookingData?.name;
+      const phoneNumber = `${bookingData?.mobile}`; // Make sure to include country code
 
-    const groundLocationURL = `https://www.google.com/maps?q=${latitude},${longitude}`;
+      const groundLocationURL = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
-    const message = `*🎉 Booking Confirmation 🎉*\n────────────────────────\n🔹 *Booking ID:* ${bookingId}\n📅 *Date:* ${date}\n🕒 *Slots:* ${slots}\n💰 *Price:* ₹${price}/-\n💸 *Advance Paid:* ₹${advance}/-\n💳 *Due Amount:* ₹${dueAmount}/-\n────────────────────────\nDear ${customerName},\nThank you for booking with us!\n📍 *Ground Location:* ${groundLocationURL}\n\nBest Regards,\n${ground_name}`;
+      const message = `*🎉 Booking Confirmation 🎉*\n────────────────────────\n🔹 *Booking ID:* ${bookingId}\n📅 *Date:* ${date}\n🕒 *Slots:* ${slots}\n💰 *Price:* ₹${price}/-\n💸 *Advance Paid:* ₹${advance}/-\n💳 *Due Amount:* ₹${dueAmount}/-\n────────────────────────\nDear ${customerName},\nThank you for booking with us!\n📍 *Ground Location:* ${groundLocationURL}\n\nBest Regards,\n${ground_name}`;
 
-    const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+      const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
-    Linking.openURL(whatsappURL);
-  } catch (err) {
-    Alert.alert('Error', 'Unable to open WhatsApp.');
-    console.error(err);
-  }
-};
+      Linking.openURL(whatsappURL);
+    } catch (err) {
+      Alert.alert('Error', 'Unable to open WhatsApp.');
+      console.error(err);
+    }
+  };
+  //////Handle edit amount//////
+  const handleEditPrice = async () => {
+    const bookingId = bookingDetails?.data[0]?.book?.booking_id;
+
+    try {
+      const response = await fetch(`${BASE_URL}/booking/updateprice`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          newPrice: Number(editPrice),
+          comboPack: false,
+        }),
+      });
+
+
+      const data = await response.json();
+     console.log('API Response:', data);
+
+
+      if (data.success) {
+        // Update the local bookingDetails state
+        const updatedBookingDetails = {
+          ...bookingDetails,
+          data: [
+            {
+              ...bookingDetails.data[0],
+              book: {
+                ...bookingDetails.data[0].book,
+                price: Number(editPrice),
+              },
+            },
+          ],
+        };
+        setBookingDetails(updatedBookingDetails); // Update the state
+        setIsEditing(false);
+        Alert.alert('Success', 'Price updated successfully');
+      } else {
+        Alert.alert('Failed', data.message || 'Could not update price');
+      }
+    } catch (error) {
+      console.error('Update Price Error:', error);
+      Alert.alert('Error', 'Something went wrong');
+    }
+  };
+
+  ///////////////Handle cancel booking/////////////////////
+  const handleCancelBooking = async () => {
+   
+    try {
+       const bookingId = bookingDetails?.data[0]?.book?.booking_id;
+    const groundId = bookingDetails?.data[0]?.ground_id;
+    console.log(bookingDetails.data[0].ground_id, bookingId, groundId , 'bookingid , groundid');
+      const response = await fetch(
+        //http://192.168.0.143:5000/api/booking/deletebooking?booking_id=BKG48HYW761X&ground_id=GNDTYMJ738ZY
+        `${BASE_URL}/booking/deletebooking?booking_id=${bookingId}&ground_id=${groundId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      const data = await response.json();
+      console.log(data, 'canceldata')
+      if (data.success) {
+        Alert.alert('Booking Cancelled', data.message || 'Booking was cancelled');
+        setDetailsModalVisible(false);
+          // ✅ Auto-refresh ground/slot data
+      await fetchGroundDetailsagain();  // ← You must define this function
+      } else {
+        Alert.alert('Failed', data.message || 'Could not cancel booking');
+      }
+    } catch (error) {
+      console.error('Cancel Booking Error:', error);
+      Alert.alert('Error', 'Something went wrong');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -721,92 +802,163 @@ const handleWhatsAppShare = (latitude, longitude , ground_name) => {
         onRequestClose={() => setDetailsModalVisible(false)}
       >
         <View style={styles.modalBackground}>
-          <View style={styles.cardContainer}>
-            {bookingDetails ? (
-              <>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>📋 Booking Details</Text>
-                </View>
-
-                <View style={styles.cardBody}>
-                  <View style={styles.row}>
-                    <View style={styles.detailBox}>
-                      <MaterialIcons name="calendar-today" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Date</Text>
-                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.date}</Text>
-                    </View>
-                    <View style={styles.detailBox}>
-                      <MaterialCommunityIcons name="identifier" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Booking ID</Text>
-                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.book?.booking_id}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.row}>
-                    <View style={styles.detailBox}>
-                      <MaterialIcons name="access-time" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Slot</Text>
-                      <Text style={styles.cardValue}>
-                        {formatSelectedSlotsDuration(
-                          bookingDetails?.data[0]?.slots?.map(slot => ({ slot }))
-                        )}
-                      </Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+          >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.cardContainer}>
+                {bookingDetails ? (
+                  <>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.cardTitle}>📋 Booking Details</Text>
                     </View>
 
-                  </View>
+                    <View style={styles.cardBody}>
+                      {/* Your Rows */}
+                      <View style={styles.row}>
+                        <View style={styles.detailBox}>
+                          <MaterialIcons name="calendar-today" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Date</Text>
+                          <Text style={styles.cardValue}>{bookingDetails?.data[0]?.date}</Text>
+                        </View>
+                        <View style={styles.detailBox}>
+                          <MaterialCommunityIcons name="identifier" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Booking ID</Text>
+                          <Text style={styles.cardValue}>{bookingDetails?.data[0]?.book?.booking_id}</Text>
+                        </View>
+                      </View>
 
-                  <View style={styles.row}>
-                    <View style={styles.detailBox}>
-                      <FontAwesome name="user" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Name</Text>
-                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.name}</Text>
+                      <View style={styles.row}>
+                        <View style={styles.detailBox}>
+                          <MaterialIcons name="access-time" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Slot</Text>
+                          <Text style={styles.cardValue}>
+                            {formatSelectedSlotsDuration(
+                              bookingDetails?.data[0]?.slots?.map(slot => ({ slot }))
+                            )}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.row}>
+                        <View style={styles.detailBox}>
+                          <FontAwesome name="user" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Name</Text>
+                          <Text style={styles.cardValue}>{bookingDetails?.data[0]?.name}</Text>
+                        </View>
+                        <View style={styles.detailBox}>
+                          <FontAwesome name="rupee" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Price</Text>
+                          <Text style={styles.cardValue}>₹{bookingDetails?.data[0]?.book?.price}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.row}>
+                        <View style={styles.detailBox}>
+                          <FontAwesome name="phone" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Mobile</Text>
+                          <Text style={styles.cardValue}>{bookingDetails?.data[0]?.mobile}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.row}>
+                        <View style={styles.detailBox}>
+                          <FontAwesome name="pencil" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Edit Amount</Text>
+
+                          {isEditing ? (
+                            <>
+                              <TextInput
+                                style={{
+                                  borderColor: '#ccc',
+                                  borderWidth: 1,
+                                  borderRadius: 5,
+                                  padding: 5,
+                                  marginTop: 5,
+                                  width: 100,
+                                }}
+                                placeholder="Enter New Price"
+                                value={editPrice}
+                                keyboardType="numeric"
+                                onChangeText={setEditPrice}
+                              />
+                              <Button
+                                mode="contained"
+                                onPress={handleEditPrice}
+                                style={{ marginTop: 5, backgroundColor: '#006849' }}
+                              >
+                                Update
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              mode="outlined"
+                              onPress={() => {
+                                setIsEditing(true);
+                                setEditPrice(`${bookingDetails?.data[0]?.book?.price}`);
+                              }}
+                              style={{ marginTop: 5 }}
+                            >
+                              Edit
+                            </Button>
+                          )}
+                        </View>
+
+                        <View style={styles.detailBox}>
+                          <FontAwesome name="trash" size={18} color="red" />
+                          <Text style={styles.cardText}>Cancel Booking</Text>
+
+                          <Button
+                            mode="contained"
+                            icon="delete"
+                            style={{ marginTop: 5, backgroundColor: 'red' }}
+                            onPress={handleCancelBooking}
+                          >
+                            Delete
+                          </Button>
+                        </View>
+                      </View>
                     </View>
-                    <View style={styles.detailBox}>
-                      <FontAwesome name="rupee" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Price</Text>
-                      <Text style={styles.cardValue}>₹{bookingDetails?.data[0]?.book?.price}</Text>
+
+                    <View style={styles.cardFooter}>
+                      <View style={styles.row}>
+                        <Button
+                          mode="contained"
+                          style={{ marginTop: 10, backgroundColor: '#25D366' }}
+                          onPress={() =>
+                            handleWhatsAppShare(
+                              grounds[0]?.latitude,
+                              grounds[0]?.longitude,
+                              grounds[0]?.name
+                            )
+                          }
+                          icon={({ size, color }) => (
+                            <FontAwesome name="whatsapp" size={size} color={color} />
+                          )}
+                        >
+                          Share on WhatsApp
+                        </Button>
+
+                        <Button
+                          mode="contained"
+                          style={{ marginTop: 10, marginLeft: 10, backgroundColor: '#006849' }}
+                          onPress={() => setDetailsModalVisible(false)}
+                        >
+                          Close
+                        </Button>
+                      </View>
                     </View>
-
-                  </View>
-
-                  <View style={styles.row}>
-
-                    <View style={styles.detailBox}>
-                      <FontAwesome name="phone" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Mobile</Text>
-                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.mobile}</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.cardFooter}>
-                  <View style={styles.row}>
-                    <Button
-                      mode="contained"
-                      style={{ marginTop: 10, backgroundColor: '#25D366' }}
-                    onPress={() => handleWhatsAppShare(grounds[0]?.latitude, grounds[0]?.longitude , grounds[0]?.name)}
-                      icon={({ size, color }) => (
-                        <FontAwesome name="whatsapp" size={size} color={color} />
-                      )}
-                    >
-                      Share on WhatsApp
-                    </Button>
-
-                    <Button mode="contained"   style={{ marginTop: 10, marginLeft: 10, backgroundColor: '#006849' }} onPress={() => setDetailsModalVisible(false)}>
-                      Close
-                    </Button>
-                  </View>
-
-                </View>
-              </>
-            ) : (
-              <Text style={styles.loadingText}>Loading...</Text>
-            )}
-          </View>
+                  </>
+                ) : (
+                  <Text style={styles.loadingText}>Loading...</Text>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
-
-    </View>
+    </View >
   );
 }
 

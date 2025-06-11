@@ -10,8 +10,14 @@ import {
   Image,
   TextInput,
   Alert,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Linking,
 } from 'react-native';
+
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // or other sets like FontAwesome, Ionicons
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -24,15 +30,12 @@ export default function GroundSlots({ route }) {
   const navigation = useNavigation();
   const { BASE_URL } = useApi();
   const { grounds } = route.params;
-  console.log(grounds[0].ground_id, 'ground details in Hroundslots screen')
-  //dummy booked slots
- // const bookedSlotIds = ["5", "10", "23", "35", "25", "26", "27", "28", "29", "30"];
+
 
   //usestates
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [name, setName] = useState(""); // State for Name
-  const [email, setEmail] = useState(""); // State for Email
   const [mobile, setMobile] = useState(""); // State for Mobile
   const [price, setPrice] = useState('');
   const [prepaid, setPrepaid] = useState("");  // Prepaid Amount
@@ -41,6 +44,11 @@ export default function GroundSlots({ route }) {
   const [cartVisible, setCartVisible] = useState(false);
   const remainingAmount = Number(price) - Number(prepaid || 0);
   const [groundData, setGroundData] = useState([]);
+  const [editPrice, setEditPrice] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  //////Booking details //////////
+  const [bookingDetails, setBookingDetails] = useState(null);
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
 
   //////it will triggere whenever we click on refresh icon
   const fetchGroundDetailsagain = async () => {
@@ -72,10 +80,12 @@ export default function GroundSlots({ route }) {
       console.log("Booked Slots:", data.slots.booked);
 
       setGroundData(data);
+      console.log(groundData, 'grounddate=======================?')
     } catch (error) {
       console.error("❌ Error fetching ground details:", error);
     }
   };
+  //it ensure always trigger fetch booking details///
   useEffect(() => {
     const fetchGroundDetails = async () => {
       try {
@@ -95,7 +105,7 @@ export default function GroundSlots({ route }) {
         //console.log("Formatted Date for API:", formattedDate);
 
         const res = await fetch(`${BASE_URL}/ground/${grounds[0]?.ground_id}?date=${formattedDate}`);
-        console.log(grounds[0].ground_id, 'gid');
+        console.log(grounds[0].latitude, '---------------gid-------------');
         console.log(res, "API response");
 
         if (!res.ok) {
@@ -119,9 +129,8 @@ export default function GroundSlots({ route }) {
   const formatSlot = (slot) => {
     return slot; // Example: return formatted slot
   };
+
   const bookedslotsbydate = groundData?.slots?.booked?.map(formatSlot) || [];
-  console.log(bookedslotsbydate, 'bookedslotsbydate')
-  //  const availableSlots = groundData.filter((slot) => !bookedslotsbydate.includes(slot.slot)) .map((slot) => slot.slot);
 
   const formatTime = (floatVal) => {
     const totalMinutes = parseFloat(floatVal) * 60;
@@ -163,23 +172,18 @@ export default function GroundSlots({ route }) {
   };
 
   //it converting time to as string
-  const getFloatTimeFromSlotString = (slotString) => parseFloat(slotString);
+  // const getFloatTimeFromSlotString = (slotString) => parseFloat(slotString);
 
   //Here we filtering the available slots
   const filteredAvailableSlots = Groundslots.filter(slot => {
     const slotTime = parseFloat(slot.slot);
-  //  const isBooked = bookedSlotIds.includes(slot.id);
+    //  const isBooked = bookedSlotIds.includes(slot.id);
     // if (isBooked) return false;
     if (isToday(selectedDate)) {
       return slotTime >= getCurrentFloatTime();
     }
     return true;
   });
-
-  //Here filtering the booked slots
-  // const filteredBookedSlots = Groundslots.filter(slot => {
-  //   return bookedSlotIds.includes(slot.id);
-  // });
 
   //Omchange date function
   const onChangeDate = (event, date) => {
@@ -225,17 +229,17 @@ export default function GroundSlots({ route }) {
   //   return isToday(selectedDate) && slotTime < getCurrentFloatTime();
   // };
 
-const isPastSlot = (slot) => {
-  const now = new Date();
+  const isPastSlot = (slot) => {
+    const now = new Date();
 
-  const slotHour = Math.floor(parseFloat(slot.slot));
-  const slotMinute = (parseFloat(slot.slot) % 1) * 60;
+    const slotHour = Math.floor(parseFloat(slot.slot));
+    const slotMinute = (parseFloat(slot.slot) % 1) * 60;
 
-  const slotTime = new Date(selectedDate);
-  slotTime.setHours(slotHour, slotMinute, 0, 0);
+    const slotTime = new Date(selectedDate);
+    slotTime.setHours(slotHour, slotMinute, 0, 0);
 
-  return slotTime < now;
-};
+    return slotTime < now;
+  };
 
 
   //It return the selected slots duration
@@ -325,28 +329,139 @@ const isPastSlot = (slot) => {
       alert('Error booking slots: ' + error.message);
     }
   };
-const checkIfAnyPastSlot = () => {
-  return selectedSlots.some(slot => isPastSlot(slot));
-};
+  const checkIfAnyPastSlot = () => {
+    return selectedSlots.some(slot => isPastSlot(slot));
+  };
 
-const handleCartPress = () => {
-  if (checkIfAnyPastSlot()) {
-    Alert.alert(
-      "⚠️ Past Slot Booking",
-      "Some selected slots are in the past. Are you sure you want to continue?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Yes, Proceed",
-          onPress: () => setCartVisible(true)
-        }
-      ]
-    );
-  } else {
-    setCartVisible(true);
+  const handleCartPress = () => {
+    if (checkIfAnyPastSlot()) {
+      Alert.alert(
+        "⚠️ Past Slot Booking",
+        "Some selected slots are in the past. Are you sure you want to continue?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+            onPress: () => setSelectedSlots([]) // Clear selected slots
+          },
+          {
+            text: "Yes, Proceed",
+            onPress: () => setCartVisible(true) // Show cart modal
+          }
+        ]
+      );
+    } else {
+      setCartVisible(true);
+    }
+  };
+
+  ////closing booking modal//
+  const closeBookingmodal = () => {
+    setCartVisible(false);
+    setSelectedSlots([]);
   }
-};
+  ///////////this funtion triggers the booking details //////////
+  const fetchBookingDetails = async (slot) => {
+    try {
+      const formattedDate = selectedDate instanceof Date
+        ? selectedDate.toISOString().slice(0, 10)
+        : selectedDate;
 
+      const response = await fetch(`${BASE_URL}/booking/bookdetails?ground_id=${grounds[0].ground_id}&date=${formattedDate}&slot=${slot}`);
+      if (!response.ok) throw new Error("Failed to fetch booking details");
+
+      const data = await response.json();
+      setBookingDetails(data); // Store the booking details
+      console.log(bookingDetails?.data[0], '---------------bookingdetails---------------')
+      setDetailsModalVisible(true); // Open modal
+    } catch (error) {
+      console.error("❌ Error fetching booking details:", error);
+      Alert.alert("Error", "Could not load booking details.");
+    }
+  };
+  /////////////////////////Share on watsapp/////////////////////////////
+  const handleWhatsAppShare = (latitude, longitude, ground_name) => {
+    try {
+      const bookingData = bookingDetails?.data[0];
+      if (!bookingData) return;
+
+      const bookingId = bookingData?.book?.booking_id;
+      const slots = formatSelectedSlotsDuration(bookingData?.slots?.map(slot => ({ slot })));
+      const price = bookingData?.book?.price;
+      const advance = bookingData?.prepaid || 0;
+      const dueAmount = price - advance;
+      const date = bookingData?.date;
+      const customerName = bookingData?.name;
+      const phoneNumber = `${bookingData?.mobile}`; // Make sure to include country code
+
+      const groundLocationURL = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+      const message = `*🎉 Booking Confirmation 🎉*\n────────────────────────\n🔹 *Booking ID:* ${bookingId}\n📅 *Date:* ${date}\n🕒 *Slots:* ${slots}\n💰 *Price:* ₹${price}/-\n💸 *Advance Paid:* ₹${advance}/-\n💳 *Due Amount:* ₹${dueAmount}/-\n────────────────────────\nDear ${customerName},\nThank you for booking with us!\n📍 *Ground Location:* ${groundLocationURL}\n\nBest Regards,\n${ground_name}`;
+
+      const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+      Linking.openURL(whatsappURL);
+    } catch (err) {
+      Alert.alert('Error', 'Unable to open WhatsApp.');
+      console.error(err);
+    }
+  };
+  //////Handle edit amount//////
+  const handleEditPrice = async () => {
+    const bookingId = bookingDetails?.data[0]?.book?.booking_id;
+
+    try {
+      const response = await fetch('http://192.168.0.143:5000/api/booking/updateprice', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          price: Number(editPrice),
+          comboPack: false,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        Alert.alert('Success', 'Price updated successfully');
+        setIsEditing(false);
+      } else {
+        Alert.alert('Failed', data.message || 'Could not update price');
+      }
+    } catch (error) {
+      console.error('Update Price Error:', error);
+      Alert.alert('Error', 'Something went wrong');
+    }
+  };
+  ///////////////Handle cancel booking/////////////////////
+  const handleCancelBooking = async () => {
+    const bookingId = bookingDetails?.data[0]?.book?.booking_id;
+    const groundId = bookingDetails?.data[0]?.book?.ground_id;
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/booking/deletebooking?booking_id=${bookingId}&ground_id=${groundId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        Alert.alert('Booking Cancelled', data.message || 'Booking was cancelled');
+        setDetailsModalVisible(false);
+      } else {
+        Alert.alert('Failed', data.message || 'Could not cancel booking');
+      }
+    } catch (error) {
+      console.error('Cancel Booking Error:', error);
+      Alert.alert('Error', 'Something went wrong');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -394,10 +509,10 @@ const handleCartPress = () => {
                         mode="contained"
                         style={[
                           isSelected
-    ? { backgroundColor: '#006849' }     // Selected - Dark Green
-    : isPastSlot(slot)
-      ? styles.pastSlot                  // Past - Grey
-      : styles.availableSlot            // Available - Green
+                            ? { backgroundColor: '#006849' }     // Selected - Dark Green
+                            : isPastSlot(slot)
+                              ? styles.pastSlot                  // Past - Grey
+                              : styles.availableSlot            // Available - Green
                         ]}
                         onPress={() => handleSlotSelect(slot)}
                         labelStyle={styles.buttonText}
@@ -423,9 +538,16 @@ const handleCartPress = () => {
                 // slot is string like "18.5"
                 const timeRange = ConvertSlotToTimeRange(slot);
                 return (
-                  <View key={index} style={styles.slotWrapper}>
+                  // <View key={index} style={styles.slotWrapper}>
+                  //   <Text style={styles.bookedSlot}>{timeRange}</Text>
+                  // </View>
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => fetchBookingDetails(slot)}
+                    style={styles.slotWrapper}
+                  >
                     <Text style={styles.bookedSlot}>{timeRange}</Text>
-                  </View>
+                  </TouchableOpacity>
                 );
               })
             ) : (
@@ -440,7 +562,7 @@ const handleCartPress = () => {
       {selectedSlots.length > 0 && (
         <TouchableOpacity
           style={styles.cartButton}
-         // onPress={() => setCartVisible(true)}
+          // onPress={() => setCartVisible(true)}
           onPress={handleCartPress}
         >
           <View style={styles.shadowWrapper}>
@@ -475,7 +597,7 @@ const handleCartPress = () => {
         </View>
         isPastSlot
       </Modal> */}
-      
+
       <Modal
         visible={cartVisible}
         animationType="slide"
@@ -583,7 +705,7 @@ const handleCartPress = () => {
             <View style={styles.buttonGroup}>
               <Button
                 mode="contained"
-                onPress={() => setCartVisible(false)}
+                onPress={closeBookingmodal}
                 style={[styles.buttonSecondary, styles.buttonSpacing]}
               >
                 Close
@@ -599,6 +721,203 @@ const handleCartPress = () => {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+      </Modal>
+
+
+
+      {/* displaying booking modal details */}
+      {/* <Modal
+  visible={detailsModalVisible}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setDetailsModalVisible(false)}
+>
+  <View style={styles.modalBackground}>
+    <View style={styles.cardContainer}>
+      {bookingDetails ? (
+        <>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>📋 Booking Details</Text>
+          </View>
+
+          <View style={styles.cardBody}>
+            <View style={{display: 'flex'}}>
+  <Text style={styles.cardText}>  <MaterialIcons name="calendar-today" size={18} color="#006849" /> Date: {bookingDetails?.data[0]?.date}</Text>
+    <Text style={styles.cardText}>   <MaterialCommunityIcons name="identifier" size={18} color="#006849" /> Booking ID: {bookingDetails?.data[0]?.book?.booking_id}</Text>
+            </View>
+          
+            <Text style={styles.cardText}>
+               <MaterialIcons name="access-time" size={18} color="#006849" /> Slot:{' '}
+              {formatSelectedSlotsDuration(
+                bookingDetails?.data[0]?.slots?.map(slot => ({ slot }))
+              )}
+            </Text>
+          
+            <Text style={styles.cardText}> <FontAwesome name="rupee" size={18} color="#006849" /> Price: ₹{bookingDetails?.data[0]?.book?.price}</Text>
+            <Text style={styles.cardText}><FontAwesome name="user" size={18} color="#006849" /> Name: {bookingDetails?.data[0]?.name}</Text>
+            <Text style={styles.cardText}> <FontAwesome name="phone" size={18} color="#006849" /> Number: {bookingDetails?.data[0]?.mobile}</Text>
+          </View>
+
+          <View style={styles.cardFooter}>
+            <Button mode="contained" onPress={() => setDetailsModalVisible(false)}>
+              Close
+            </Button>
+          </View>
+        </>
+      ) : (
+        <Text style={styles.loadingText}>Loading...</Text>
+      )}
+    </View>
+  </View>
+</Modal> */}
+
+      <Modal
+        visible={detailsModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDetailsModalVisible(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.cardContainer}>
+            {bookingDetails ? (
+              <>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>📋 Booking Details</Text>
+                </View>
+
+                <View style={styles.cardBody}>
+                  <View style={styles.row}>
+                    <View style={styles.detailBox}>
+                      <MaterialIcons name="calendar-today" size={18} color="#006849" />
+                      <Text style={styles.cardText}>Date</Text>
+                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.date}</Text>
+                    </View>
+                    <View style={styles.detailBox}>
+                      <MaterialCommunityIcons name="identifier" size={18} color="#006849" />
+                      <Text style={styles.cardText}>Booking ID</Text>
+                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.book?.booking_id}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.row}>
+                    <View style={styles.detailBox}>
+                      <MaterialIcons name="access-time" size={18} color="#006849" />
+                      <Text style={styles.cardText}>Slot</Text>
+                      <Text style={styles.cardValue}>
+                        {formatSelectedSlotsDuration(
+                          bookingDetails?.data[0]?.slots?.map(slot => ({ slot }))
+                        )}
+                      </Text>
+                    </View>
+
+                  </View>
+
+                  <View style={styles.row}>
+                    <View style={styles.detailBox}>
+                      <FontAwesome name="user" size={18} color="#006849" />
+                      <Text style={styles.cardText}>Name</Text>
+                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.name}</Text>
+                    </View>
+                    <View style={styles.detailBox}>
+                      <FontAwesome name="rupee" size={18} color="#006849" />
+                      <Text style={styles.cardText}>Price</Text>
+                      <Text style={styles.cardValue}>₹{bookingDetails?.data[0]?.book?.price}</Text>
+
+                    </View>
+
+                  </View>
+
+                  <View style={styles.row}>
+
+                    <View style={styles.detailBox}>
+                      <FontAwesome name="phone" size={18} color="#006849" />
+                      <Text style={styles.cardText}>Mobile</Text>
+                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.mobile}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.row}>
+                    <View style={styles.detailBox}>
+                      <FontAwesome name="pencil" size={18} color="#006849" />
+                      <Text style={styles.cardText}>Edit Amount</Text>
+
+                      {isEditing ? (
+                        <>
+                          <TextInput
+                            style={{
+                              borderColor: '#ccc',
+                              borderWidth: 1,
+                              borderRadius: 5,
+                              padding: 5,
+                              marginTop: 5,
+                              width: 100,
+                            }}
+                            placeholder="Enter New Price"
+                            value={editPrice}
+                            keyboardType="numeric"
+                            onChangeText={setEditPrice}
+                          />
+                          <Button
+                            mode="contained"
+                            onPress={handleEditPrice}
+                            style={{ marginTop: 5, backgroundColor: '#006849' }}
+                          >
+                            Update
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          mode="outlined"
+                          onPress={() => {
+                            setIsEditing(true);
+                            setEditPrice(`${bookingDetails?.data[0]?.book?.price}`);
+                          }}
+                          style={{ marginTop: 5 }}
+                        >
+                          Edit
+                        </Button>
+                      )}
+                    </View>
+                    <View style={styles.detailBox}>
+                      <FontAwesome name="trash" size={18} color="red" />
+                      <Text style={styles.cardText}>Cancel Booking</Text>
+
+                      <Button
+                        mode="contained"
+                        icon="delete"
+                        style={{ marginTop: 5, backgroundColor: 'red' }}
+                        onPress={handleCancelBooking}
+                      >
+                        Delete
+                      </Button>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.cardFooter}>
+                  <View style={styles.row}>
+                    <Button
+                      mode="contained"
+                      style={{ marginTop: 10, backgroundColor: '#25D366' }}
+                      onPress={() => handleWhatsAppShare(grounds[0]?.latitude, grounds[0]?.longitude, grounds[0]?.name)}
+                      icon={({ size, color }) => (
+                        <FontAwesome name="whatsapp" size={size} color={color} />
+                      )}
+                    >
+                      Share on WhatsApp
+                    </Button>
+
+                    <Button mode="contained" style={{ marginTop: 10, marginLeft: 10, backgroundColor: '#006849' }} onPress={() => setDetailsModalVisible(false)}>
+                      Close
+                    </Button>
+                  </View>
+
+                </View>
+              </>
+            ) : (
+              <Text style={styles.loadingText}>Loading...</Text>
+            )}
+          </View>
+        </View>
       </Modal>
 
     </View>
@@ -632,6 +951,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     backgroundColor: '#006849',
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center"
   },
   modalOverlay: {
     flex: 1,
@@ -802,9 +1127,9 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: '#000000aa', justifyContent: 'center' },
   modalContent: { margin: 20, backgroundColor: '#fff', borderRadius: 10, padding: 20 },
   modalTitle: { fontWeight: '700', fontSize: 16, marginBottom: 10 },
- pastSlot: {
-  backgroundColor: '#A9A9A9', // Dark Grey (you can change it)
-},
+  pastSlot: {
+    backgroundColor: '#A9A9A9', // Dark Grey (you can change it)
+  },
   cartCircle: {
     width: 50,
     height: 50,
@@ -817,6 +1142,85 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  cardContainer: {
+    width: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 5,
+  },
+
+  cardHeader: {
+    backgroundColor: '#006849',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+
+  cardTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+
+  cardBody: {
+    padding: 16,
+  },
+
+  cardText: {
+    fontSize: 15,
+    marginBottom: 8,
+    color: '#333',
+  },
+
+  cardFooter: {
+    padding: 12,
+    alignItems: 'center',
+  },
+
+  loadingText: {
+    padding: 20,
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  detailBox: {
+    flex: 1,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    padding: 10,
+    marginHorizontal: 5,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardText: {
+    fontSize: 12,
+    color: '#333',
+    marginTop: 4,
+  },
+  cardValue: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#000',
+    marginTop: 2,
   },
 
 });
