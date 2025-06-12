@@ -30,11 +30,11 @@ export default function HomeScreen() {
         setGroundDetails(grounddetails);
         console.log(grounddetails, 'groundetails')
         const user_id = user.user.id;
-        console.log(user_id , 'user_id')
-       const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
+        console.log(user_id, 'user_id')
+        const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
         console.log(response, '--------------------res-------------------------')
         const data = await response.json();
-       console.log(data[0], '----------data----------')
+       // console.log(data[0], '----------data----------')
         setGrounds(data);
       } catch (error) {
         console.error('Error fetching grounds:', error);
@@ -70,31 +70,16 @@ export default function HomeScreen() {
     </TouchableOpacity>
   );
 
-  // const renderImage = ({ item }) => (
-  //   <TouchableOpacity onPress={handleBookNow} style={styles.imageWrapper}>
-  //     <Card style={styles.card}>
-  //       {item.photo?.map((photo, index) => (
-  //         <Image
-  //           source={{ uri: `${IMAGE_BASE_URL}/${photo}` }}
-  //           style={styles.relatedImage}
-  //         />
-
-  //       ))}
-  //     </Card>
-  //   </TouchableOpacity>
-  // );
-
-
   if (loading) {
     return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
   }
 
   return (
     <View style={styles.container}>
-     <Text style={styles.appName}>
-  <Text style={[styles.appName, { color: '#006849' }]}>Pick Your </Text>
-  <Text style={[styles.appName, { color: '#000' }]}>Ground</Text>
-</Text>
+      <Text style={styles.appName}>
+        <Text style={[styles.appName, { color: '#006849' }]}>Pick Your </Text>
+        <Text style={[styles.appName, { color: '#000' }]}>Ground</Text>
+      </Text>
 
 
       {grounds.length > 0 && grounds[0].photo?.length > 0 && (
@@ -109,7 +94,7 @@ export default function HomeScreen() {
 
       <View style={styles.imagesSection}>
         <Text style={styles.sectionTitle}><Text style={[styles.sectionTitle, { color: '#006849' }]}>Pick Your </Text>
-  <Text style={[styles.sectionTitle, { color: '#000' }]}>Slot</Text></Text>
+          <Text style={[styles.sectionTitle, { color: '#000' }]}>Slot</Text></Text>
         <FlatList
           data={grounds}
           keyExtractor={(item) => item._id}
@@ -118,23 +103,27 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 15 }}
         />
-       <View style={styles.groundDetailsContainer}>
-  <Text style={styles.groundName}>
-    {grounds.length > 0 ? grounds[0].name : 'No Ground Found'}
-  </Text>
-    <Text style={styles.groundCity}>
-    {grounds.length > 0 ? grounds[0].description : ''}
-  </Text>
-  <Text style={styles.groundCity}>
-    {grounds.length > 0 ? grounds[0].city : ''}
-  </Text>
-</View>
+        <View style={styles.groundDetailsContainer}>
+          <Text style={styles.groundName}>
+            {grounds.length > 0 ? grounds[0].name : 'No Ground Found'}
+          </Text>
+          <Text style={styles.groundCity}>
+            {grounds.length > 0 ? grounds[0].description : ''}
+          </Text>
+          <Text style={styles.groundCity}>
+            {grounds.length > 0 ? grounds[0].city : ''}
+          </Text>
+        </View>
 
 
         <Button mode="contained" onPress={handleBookNow} style={styles.bookNowBtn}>
           Book Now
         </Button>
-       
+
+      </View>
+
+      <View>
+        
       </View>
     </View>
   );
@@ -143,10 +132,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9f9f9' },
   groundDetailsContainer: {
-  alignItems: 'center',
-  marginVertical: 0,
-  paddingHorizontal: 0,
-},
+    alignItems: 'center',
+    marginVertical: 0,
+    paddingHorizontal: 0,
+  },
   groundName: {
     fontSize: 24,
     fontWeight: '400',
@@ -154,7 +143,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#000',
   },
-    appName: {
+  appName: {
     fontSize: 24,
     fontWeight: '400',
     textAlign: 'center',

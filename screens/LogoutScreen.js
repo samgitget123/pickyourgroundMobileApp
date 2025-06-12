@@ -1,10 +1,37 @@
-import React from 'react';
-import { View, Button } from 'react-native';
+import React, { useEffect } from 'react';
+import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 
-export default function LogoutScreen({ navigation }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Button title="Confirm Logout" onPress={() => navigation.replace('Login')} />
-    </View>
-  );
+export default function LogoutScreen() {
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const logout = async () => {
+      Alert.alert('Logout', 'Are you sure you want to logout?', [
+        {
+          text: 'Cancel',
+          onPress: () => {
+            // ✅ Instead of goBack, redirect to a safe screen like Dashboard
+            navigation.replace('MainApp');
+          },
+          style: 'cancel',
+        },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            await AsyncStorage.removeItem('userData');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          },
+        },
+      ]);
+    };
+
+    logout();
+  }, []);
+
+  return null;
 }

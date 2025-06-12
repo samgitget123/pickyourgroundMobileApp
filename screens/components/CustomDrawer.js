@@ -15,11 +15,9 @@ export default function CustomDrawer(props) {
           resizeMode="contain"
         />
         <Text style={styles.name}>
-          <Text style={{ color: '#006849' }}>Pick Your </Text>
-          <Text style={{ color: '#000' }}>Ground</Text>
+          <Text style={{ color: '#fff' }}>Pick Your </Text>
+          <Text style={{ color: '#00EE64' }}>Ground</Text>
         </Text>
-
-
       </View>
       <DrawerItemList {...props} />
     </DrawerContentScrollView>
@@ -32,14 +30,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
-    marginBottom: 10,
+    marginBottom: 30,
+    backgroundColor:'#006849'
   },
   logo: {
     width: 100,
     height: 100,
     borderRadius: 50, // This makes the image fully rounded (circle)
     borderWidth: 2,
-    //borderColor: '#6200ee', // Optional: colored border around logo
+    borderColor: '#fff', // Optional: colored border around logo
   },
   name: {
     fontSize: 18,

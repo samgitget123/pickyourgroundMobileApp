@@ -15,7 +15,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Pressable,
-
+  FlatList
 } from 'react-native';
 
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // or other sets like FontAwesome, Ionicons
@@ -30,11 +30,14 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useApi } from '../src/contexts/ApiContext';
 import ConvertSlotToTimeRange from '../Helpers/ConvertSlotToTimeRange';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
 export default function GroundSlots({ route }) {
   const navigation = useNavigation();
   const { BASE_URL } = useApi();
-  const { grounds } = route.params;
-console.log(grounds, '-------ground details in ground slots screen----------')
+  const IMAGE_BASE_URL = `http://192.168.1.5:5000/uploads`;
+ // const { grounds } = route.params;
+
 
   //usestates
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -53,13 +56,79 @@ console.log(grounds, '-------ground details in ground slots screen----------')
   //////Booking details //////////
   const [bookingDetails, setBookingDetails] = useState(null);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
+  const [grounddetails, setGroundDetails] = useState([]);
+  const [userDetails, setUserDetails] = useState([]);
+
+  //////////////ground intro/////////////
+  // useEffect(() => {
+  //   const fetchGrounds = async () => {
+  //     try {
+  //       const storedUser = await AsyncStorage.getItem('userData');
+  //       const user = storedUser ? JSON.parse(storedUser) : null;
+  //       if (!user || !user.user) {
+  //         console.error('User ID not found in AsyncStorage');
+  //         return;
+  //       }
+  //       const userData = user.user;
+  //       setUserDetails(userData);
+  //       console.log(userDetails, 'userDeatails')
+  //       const user_id = user.user.id;
+  //       console.log(user_id, 'user_id')
+  //       const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
+  //       console.log(response, '--------------------res-------------------------')
+  //       const data = await response.json();
+       
+  //       setGroundDetails(data[0]);
+      
+  //     } catch (error) {
+  //       console.error('Error fetching grounds:', error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchGrounds();
+  // }, []);
+  useEffect(() => {
+  const fetchGrounds = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem('userData');
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      if (!user || !user.user) {
+        console.error('User ID not found in AsyncStorage');
+        return;
+      }
+
+      const user_id = user.user.id;
+      setUserDetails(user.user);
+
+      const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+      if (data.length > 0) {
+        setGroundDetails(data[0]);
+      } else {
+        console.warn('No ground data found for this user.');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching ground details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchGrounds();
+}, []);
 
   //////it will triggere whenever we click on refresh icon
   const fetchGroundDetailsagain = async () => {
     try {
       // Convert selectedDate to 'YYYY-MM-DD' format string
       let formattedDate = "";
-      const gid = grounds[0]?.ground_id;
+      const gid = grounddetails.ground_id;
 
       if (selectedDate instanceof Date) {
         // If selectedDate is a Date object
@@ -73,7 +142,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
 
       console.log("---------------formattedDate---------------", formattedDate);
 
-      const res = await fetch(`${BASE_URL}/ground/${gid}?date=${formattedDate}`);
+      const res = await fetch(`${BASE_URL}/ground/${grounddetails.ground_id}?date=${formattedDate}`);
       console.log(res, "API response");
 
       if (!res.ok) {
@@ -84,7 +153,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
       console.log("Booked Slots:", data.slots.booked);
 
       setGroundData(data);
-      console.log(groundData, 'grounddate=======================?')
+     
     } catch (error) {
       console.error("❌ Error fetching ground details:", error);
     }
@@ -93,6 +162,10 @@ console.log(grounds, '-------ground details in ground slots screen----------')
   useEffect(() => {
     const fetchGroundDetails = async () => {
       try {
+          if (!grounddetails?.ground_id) {
+        console.warn("⛔ ground_id not available yet");
+        return;
+      }
         // Convert selectedDate to 'YYYY-MM-DD' format string
         let formattedDate = "";
 
@@ -108,8 +181,8 @@ console.log(grounds, '-------ground details in ground slots screen----------')
 
         //console.log("Formatted Date for API:", formattedDate);
 
-        const res = await fetch(`${BASE_URL}/ground/${grounds[0]?.ground_id}?date=${formattedDate}`);
-        console.log(grounds[0].latitude, '---------------gid-------------');
+        const res = await fetch(`${BASE_URL}/ground/${grounddetails?.ground_id}?date=${formattedDate}`);
+       // console.log(grounds[0].latitude, '---------------gid-------------');
         console.log(res, "API response");
 
         if (!res.ok) {
@@ -208,7 +281,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
       return;
     }
 
-    if (selectedSlots.length === 0) {
+    if (selectedSlots?.length === 0) {
       setSelectedSlots([slot]);
       return;
     }
@@ -282,6 +355,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
   };
   //handleBooking
   const handleBooking = async (gid, selectSlots, selectDate) => {
+    console.log(gid, selectSlots, selectedDate, 'params in handlebooking ')
     if (selectedSlots.length === 0 || !name || !mobile) {
       alert('Please fill all required fields and select slots.');
       return;
@@ -290,6 +364,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
     const user = storedUser ? JSON.parse(storedUser) : null;
     const user_id = user.user.id;
     formattedDate = selectDate.toISOString().slice(0, 10);
+
     const payload = {
       ground_id: gid,              // replace with your actual ground id variable
       slots: selectSlots.map(s => s.slot),
@@ -302,7 +377,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
       prepaid: Number(prepaid),
       user_id: user_id || "",
     };
-    console.log(payload, 'payload')
+    console.log(payload, '------------------payload---------------')
     try {
       const response = await fetch(`${BASE_URL}/booking/book-slot`, {
         method: 'POST',
@@ -313,7 +388,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
       });
 
       const data = await response.json();
-      console.log(data)
+      console.log(data, 'Booking success data')
       if (response.ok) {
         alert('✅ Booking successful! Your slots have been reserved.');
         setCartVisible(false);
@@ -372,7 +447,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
         ? selectedDate.toISOString().slice(0, 10)
         : selectedDate;
 
-      const response = await fetch(`${BASE_URL}/booking/bookdetails?ground_id=${grounds[0].ground_id}&date=${formattedDate}&slot=${slot}`);
+      const response = await fetch(`${BASE_URL}/booking/bookdetails?ground_id=${grounddetails?.ground_id}&date=${formattedDate}&slot=${slot}`);
       if (!response.ok) throw new Error("Failed to fetch booking details");
 
       const data = await response.json();
@@ -491,13 +566,73 @@ console.log(grounds, '-------ground details in ground slots screen----------')
     }
   };
 
+  const renderImage = ({ item }) => (
+    <TouchableOpacity style={styles.imageWrapper}>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.imageScrollView} // 👈 new style
+      >
+        {item.photo?.map((photo, index) => (
+          <Image
+            key={index}
+            source={{ uri: `${IMAGE_BASE_URL}/${photo}` }}
+            style={styles.relatedImage}
+          />
+        ))}
+      </ScrollView>
+
+    </TouchableOpacity>
+  );
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Button mode="text" onPress={() => navigation.goBack()}>
+        {/* <Button mode="text" onPress={() => navigation.goBack()}>
           ← Back
-        </Button>
+        </Button> */}
       </View>
+      {/* home intro */}
+      {/* <Text style={styles.appName}>
+        <Text style={[styles.appName, { color: '#006849' }]}>Pick Your </Text>
+        <Text style={[styles.appName, { color: '#000' }]}>Ground</Text>
+      </Text>
+      {grounddetails?.photo?.length > 0 && grounddetails?.photo?.length > 0 && (
+      
+              <Image
+                source={{ uri: `${IMAGE_BASE_URL}/logo.PNG` }}
+                style={styles.mainImage}
+                resizeMode="cover"
+              />
+            )} */}
+
+      {/* <View style={styles.imagesSection}>
+        <Text style={styles.sectionTitle}><Text style={[styles.sectionTitle, { color: '#006849' }]}>Pick Your </Text>
+          <Text style={[styles.sectionTitle, { color: '#000' }]}>Slot</Text></Text>
+        <FlatList
+          data={grounds}
+          keyExtractor={(item) => item._id}
+          horizontal
+          renderItem={renderImage}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 15 }}
+        />
+        <View style={styles.groundDetailsContainer}>
+          <Text style={styles.groundName}>
+            {grounds.length > 0 ? grounds[0].name : 'No Ground Found'}
+          </Text>
+          <Text style={styles.groundCity}>
+            {grounds.length > 0 ? grounds[0].description : ''}
+          </Text>
+          <Text style={styles.groundCity}>
+            {grounds.length > 0 ? grounds[0].city : ''}
+          </Text>
+        </View>
+
+
+   
+
+      </View> */}
       <View style={styles.dateRow}>
 
         <View style={styles.datepickerfield}>
@@ -524,7 +659,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
         <View style={styles.column}>
           <Text style={styles.subtitle}>Available</Text>
           <ScrollView contentContainerStyle={[styles.grid, { paddingBottom: 200 }]} showsVerticalScrollIndicator={false} >
-            {filteredAvailableSlots.length ? (
+            {filteredAvailableSlots?.length ? (
               filteredAvailableSlots
                 .filter(slot => !bookedslotsbydate.includes(slot.slot)) // Exclude booked
                 .map((slot) => {
@@ -561,7 +696,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
         <View style={styles.column}>
           <Text style={styles.subtitle}>Booked</Text>
           <ScrollView contentContainerStyle={[styles.grid, { paddingBottom: 200 }]} showsVerticalScrollIndicator={false}>
-            {bookedslotsbydate.length ? (
+            {bookedslotsbydate?.length ? (
               bookedslotsbydate.map((slot, index) => {
                 // slot is string like "18.5"
                 const timeRange = ConvertSlotToTimeRange(slot);
@@ -587,7 +722,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
       </View>
 
 
-      {selectedSlots.length > 0 && (
+      {selectedSlots?.length > 0 && (
         <TouchableOpacity
           style={styles.cartButton}
           // onPress={() => setCartVisible(true)}
@@ -602,7 +737,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
             </View>
           </View>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{selectedSlots.length}</Text>
+            <Text style={styles.badgeText}>{selectedSlots?.length}</Text>
           </View>
         </TouchableOpacity>
       )}
@@ -654,6 +789,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
                 <Icon name="user" size={20} color="#006849" style={styles.icon} />
                 <TextInput
                   placeholder="Enter your Name"
+                   placeholderTextColor="#999"
                   style={styles.input}
                   value={name}
                   onChangeText={setName}
@@ -665,6 +801,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
                 <Icon name="phone" size={20} color="#006849" style={styles.icon} />
                 <TextInput
                   placeholder="Enter your Mobile Number"
+                   placeholderTextColor="#999"
                   style={styles.input}
                   keyboardType="phone-pad"
                   maxLength={13}
@@ -685,6 +822,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
                 <Icon name="money" size={20} color="#006849" style={styles.icon} />
                 <TextInput
                   placeholder="Total Amount"
+                   placeholderTextColor="#999"
                   style={styles.input}
                   keyboardType="numeric"
                   value={price}
@@ -697,6 +835,7 @@ console.log(grounds, '-------ground details in ground slots screen----------')
                 <Icon name="rupee" size={20} color="#006849" style={styles.icon} />
                 <TextInput
                   placeholder="Prepaid Amount"
+                   placeholderTextColor="#999"
                   style={styles.input}
                   keyboardType="numeric"
                   value={prepaid}
@@ -744,8 +883,8 @@ console.log(grounds, '-------ground details in ground slots screen----------')
               </Button>
               <Button
                 mode="contained"
-                onPress={() => handleBooking(grounds[0]?.ground_id, selectedSlots, selectedDate)}
-                disabled={selectedSlots.length === 0 || !name || !mobile}
+                onPress={() => handleBooking(grounddetails?.ground_id, selectedSlots, selectedDate)}
+                disabled={selectedSlots?.length === 0 || !name || !mobile}
                 style={styles.buttonPrimary}
               >
                 Confirm
@@ -863,13 +1002,13 @@ console.log(grounds, '-------ground details in ground slots screen----------')
                       </View>
 
                       <View style={styles.row}>
-                       
-                          <Pressable style={styles.detailBox}  onPress={() => Linking.openURL(`tel:${bookingDetails?.data[0]?.mobile}`)}>
-                            <FontAwesome name="phone" size={18} color="#006849" />
-                            <Text style={styles.cardText}>Mobile</Text>
-                            <Text style={styles.cardValue}>{bookingDetails?.data[0]?.mobile}</Text>
-                          </Pressable>
-                      
+
+                        <Pressable style={styles.detailBox} onPress={() => Linking.openURL(`tel:${bookingDetails?.data[0]?.mobile}`)}>
+                          <FontAwesome name="phone" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Mobile</Text>
+                          <Text style={styles.cardValue}>{bookingDetails?.data[0]?.mobile}</Text>
+                        </Pressable>
+
                       </View>
 
                       <View style={styles.row}>
@@ -938,9 +1077,9 @@ console.log(grounds, '-------ground details in ground slots screen----------')
                           style={{ marginTop: 10, backgroundColor: '#25D366' }}
                           onPress={() =>
                             handleWhatsAppShare(
-                              grounds[0]?.latitude,
-                              grounds[0]?.longitude,
-                              grounds[0]?.name
+                             grounddetails?.latitude,
+                             grounddetails?.longitude,
+                             grounddetails?.name
                             )
                           }
                           icon={({ size, color }) => (
@@ -1270,5 +1409,58 @@ const styles = StyleSheet.create({
     color: '#000',
     marginTop: 2,
   },
+  ////////////////Intro section/////////
+  appName: {
+    fontSize: 24,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginTop: 10,
+    color: '#000',
+  },
+  mainImage: {
+    width: '90%',
+    height: 200,
+    alignSelf: 'center',
+    borderRadius: 15,
+    marginVertical: 15,
+  },
+  imagesSection: {
+    paddingVertical: 10,
+    backgroundColor: '#E8E8E8',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '400',
+    marginLeft: 15,
+    marginBottom: 10,
+    color: '#333',
+    textAlign: 'center'
+  },
+  imageWrapper: {
+    marginRight: 15,
+  },
+  imageScrollView: {
+    width: '100%',
+  },
+  relatedImage: {
+    width: 200,
+    height: 140,
+    resizeMode: 'cover',
+    marginRight: 10,
+    borderRadius: 8,
+  },
+  groundDetailsContainer: {
+    alignItems: 'center',
+    marginVertical: 0,
+    paddingHorizontal: 0,
+  },
+  groundName: {
+    fontSize: 24,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginTop: 10,
+    color: '#000',
+  },
+  ////////intro//////////
 
 });
