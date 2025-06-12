@@ -13,7 +13,9 @@ import {
   KeyboardAvoidingView,
   Linking,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Pressable,
+
 } from 'react-native';
 
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // or other sets like FontAwesome, Ionicons
@@ -32,7 +34,7 @@ export default function GroundSlots({ route }) {
   const navigation = useNavigation();
   const { BASE_URL } = useApi();
   const { grounds } = route.params;
-
+console.log(grounds, '-------ground details in ground slots screen----------')
 
   //usestates
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -57,7 +59,7 @@ export default function GroundSlots({ route }) {
     try {
       // Convert selectedDate to 'YYYY-MM-DD' format string
       let formattedDate = "";
-      const gid = grounds[0].ground_id;
+      const gid = grounds[0]?.ground_id;
 
       if (selectedDate instanceof Date) {
         // If selectedDate is a Date object
@@ -296,7 +298,8 @@ export default function GroundSlots({ route }) {
       // email: userEmail || "",
       mobile: mobile.replace(/\D/g, ''),
       comboPack: false,
-      price: price,
+      price: Number(price),    // ✅ Convert to number
+      prepaid: Number(prepaid),
       user_id: user_id || "",
     };
     console.log(payload, 'payload')
@@ -390,6 +393,7 @@ export default function GroundSlots({ route }) {
       const bookingId = bookingData?.book?.booking_id;
       const slots = formatSelectedSlotsDuration(bookingData?.slots?.map(slot => ({ slot })));
       const price = bookingData?.book?.price;
+      // const prepaid = bookingData?.prepaid;
       const advance = bookingData?.prepaid || 0;
       const dueAmount = price - advance;
       const date = bookingData?.date;
@@ -427,7 +431,7 @@ export default function GroundSlots({ route }) {
 
 
       const data = await response.json();
-     console.log('API Response:', data);
+      console.log('API Response:', data);
 
 
       if (data.success) {
@@ -458,11 +462,11 @@ export default function GroundSlots({ route }) {
 
   ///////////////Handle cancel booking/////////////////////
   const handleCancelBooking = async () => {
-   
+
     try {
-       const bookingId = bookingDetails?.data[0]?.book?.booking_id;
-    const groundId = bookingDetails?.data[0]?.ground_id;
-    console.log(bookingDetails.data[0].ground_id, bookingId, groundId , 'bookingid , groundid');
+      const bookingId = bookingDetails?.data[0]?.book?.booking_id;
+      const groundId = bookingDetails?.data[0]?.ground_id;
+      console.log(bookingDetails.data[0].ground_id, bookingId, groundId, 'bookingid , groundid');
       const response = await fetch(
         //http://192.168.0.143:5000/api/booking/deletebooking?booking_id=BKG48HYW761X&ground_id=GNDTYMJ738ZY
         `${BASE_URL}/booking/deletebooking?booking_id=${bookingId}&ground_id=${groundId}`,
@@ -476,8 +480,8 @@ export default function GroundSlots({ route }) {
       if (data.success) {
         Alert.alert('Booking Cancelled', data.message || 'Booking was cancelled');
         setDetailsModalVisible(false);
-          // ✅ Auto-refresh ground/slot data
-      await fetchGroundDetailsagain();  // ← You must define this function
+        // ✅ Auto-refresh ground/slot data
+        await fetchGroundDetailsagain();  // ← You must define this function
       } else {
         Alert.alert('Failed', data.message || 'Could not cancel booking');
       }
@@ -519,7 +523,7 @@ export default function GroundSlots({ route }) {
       <View style={styles.row}>
         <View style={styles.column}>
           <Text style={styles.subtitle}>Available</Text>
-          <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={[styles.grid, { paddingBottom: 200 }]} showsVerticalScrollIndicator={false} >
             {filteredAvailableSlots.length ? (
               filteredAvailableSlots
                 .filter(slot => !bookedslotsbydate.includes(slot.slot)) // Exclude booked
@@ -556,7 +560,7 @@ export default function GroundSlots({ route }) {
 
         <View style={styles.column}>
           <Text style={styles.subtitle}>Booked</Text>
-          <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={[styles.grid, { paddingBottom: 200 }]} showsVerticalScrollIndicator={false}>
             {bookedslotsbydate.length ? (
               bookedslotsbydate.map((slot, index) => {
                 // slot is string like "18.5"
@@ -696,7 +700,11 @@ export default function GroundSlots({ route }) {
                   style={styles.input}
                   keyboardType="numeric"
                   value={prepaid}
-                  onChangeText={setPrepaid}
+                  onChangeText={(text) => {
+                    const numeric = text.replace(/[^0-9.]/g, '');
+                    setPrepaid(numeric);
+                  }}
+                  maxLength={6}
                 />
               </View>
             </View>
@@ -736,7 +744,7 @@ export default function GroundSlots({ route }) {
               </Button>
               <Button
                 mode="contained"
-                onPress={() => handleBooking(grounds[0].ground_id, selectedSlots, selectedDate)}
+                onPress={() => handleBooking(grounds[0]?.ground_id, selectedSlots, selectedDate)}
                 disabled={selectedSlots.length === 0 || !name || !mobile}
                 style={styles.buttonPrimary}
               >
@@ -855,11 +863,13 @@ export default function GroundSlots({ route }) {
                       </View>
 
                       <View style={styles.row}>
-                        <View style={styles.detailBox}>
-                          <FontAwesome name="phone" size={18} color="#006849" />
-                          <Text style={styles.cardText}>Mobile</Text>
-                          <Text style={styles.cardValue}>{bookingDetails?.data[0]?.mobile}</Text>
-                        </View>
+                       
+                          <Pressable style={styles.detailBox}  onPress={() => Linking.openURL(`tel:${bookingDetails?.data[0]?.mobile}`)}>
+                            <FontAwesome name="phone" size={18} color="#006849" />
+                            <Text style={styles.cardText}>Mobile</Text>
+                            <Text style={styles.cardValue}>{bookingDetails?.data[0]?.mobile}</Text>
+                          </Pressable>
+                      
                       </View>
 
                       <View style={styles.row}>

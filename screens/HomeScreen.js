@@ -14,7 +14,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [grounddetails, setGroundDetails] = useState([]);
   const { BASE_URL } = useApi();
-  const IMAGE_BASE_URL = `http://192.168.0.143:5000/uploads`;
+  const IMAGE_BASE_URL = `http://192.168.1.5:5000/uploads`;
 
 
   useEffect(() => {
@@ -30,11 +30,11 @@ export default function HomeScreen() {
         setGroundDetails(grounddetails);
         console.log(grounddetails, 'groundetails')
         const user_id = user.user.id;
-        //console.log(user_id , 'user_id')
-        const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
+        console.log(user_id , 'user_id')
+       const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
         console.log(response, '--------------------res-------------------------')
         const data = await response.json();
-       // console.log(data[0].slots, '----------data----------')
+       console.log(data[0], '----------data----------')
         setGrounds(data);
       } catch (error) {
         console.error('Error fetching grounds:', error);

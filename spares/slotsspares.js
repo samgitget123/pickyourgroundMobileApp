@@ -12,6 +12,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Linking,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // or other sets like FontAwesome, Ionicons
@@ -51,6 +53,7 @@ export default function GroundSlots({ route }) {
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
 
   //////it will triggere whenever we click on refresh icon
+  //http://192.168.1.12:5000/api/ground/user/grounds/5621f3e5-9419-4ae5-816f-d04dea908af7
   const fetchGroundDetailsagain = async () => {
     try {
       // Convert selectedDate to 'YYYY-MM-DD' format string
@@ -295,6 +298,7 @@ export default function GroundSlots({ route }) {
       mobile: mobile.replace(/\D/g, ''),
       comboPack: false,
       price: price,
+      prepaid: prepaid,
       user_id: user_id || "",
     };
     console.log(payload, 'payload')
@@ -313,7 +317,7 @@ export default function GroundSlots({ route }) {
         alert('✅ Booking successful! Your slots have been reserved.');
         setCartVisible(false);
         // navigation.navigate('Slots');
-
+        await fetchGroundDetailsagain();
         // Reset form and selection if needed
         setSelectedSlots([]);
         setName('');
@@ -367,7 +371,7 @@ export default function GroundSlots({ route }) {
         ? selectedDate.toISOString().slice(0, 10)
         : selectedDate;
 
-      const response = await fetch(`${BASE_URL}/booking/bookdetails?ground_id=${grounds[0].ground_id}&date=${formattedDate}&slot=${slot}`);
+      const response = await fetch(`${BASE_URL}/booking/bookdetails?ground_id=${grounds[0]?.ground_id}&date=${formattedDate}&slot=${slot}`);
       if (!response.ok) throw new Error("Failed to fetch booking details");
 
       const data = await response.json();
@@ -383,6 +387,7 @@ export default function GroundSlots({ route }) {
   const handleWhatsAppShare = (latitude, longitude, ground_name) => {
     try {
       const bookingData = bookingDetails?.data[0];
+      console.log(bookingData, 'bookingdata')
       if (!bookingData) return;
 
       const bookingId = bookingData?.book?.booking_id;
@@ -411,23 +416,40 @@ export default function GroundSlots({ route }) {
     const bookingId = bookingDetails?.data[0]?.book?.booking_id;
 
     try {
-      const response = await fetch('http://192.168.0.143:5000/api/booking/updateprice', {
+      const response = await fetch(`${BASE_URL}/booking/updateprice`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           booking_id: bookingId,
-          price: Number(editPrice),
+          newPrice: Number(editPrice),
           comboPack: false,
         }),
       });
 
+
       const data = await response.json();
+      console.log('API Response:', data);
+
 
       if (data.success) {
-        Alert.alert('Success', 'Price updated successfully');
+        // Update the local bookingDetails state
+        const updatedBookingDetails = {
+          ...bookingDetails,
+          data: [
+            {
+              ...bookingDetails.data[0],
+              book: {
+                ...bookingDetails.data[0].book,
+                price: Number(editPrice),
+              },
+            },
+          ],
+        };
+        setBookingDetails(updatedBookingDetails); // Update the state
         setIsEditing(false);
+        Alert.alert('Success', 'Price updated successfully');
       } else {
         Alert.alert('Failed', data.message || 'Could not update price');
       }
@@ -436,24 +458,29 @@ export default function GroundSlots({ route }) {
       Alert.alert('Error', 'Something went wrong');
     }
   };
+
   ///////////////Handle cancel booking/////////////////////
   const handleCancelBooking = async () => {
-    const bookingId = bookingDetails?.data[0]?.book?.booking_id;
-    const groundId = bookingDetails?.data[0]?.book?.ground_id;
 
     try {
+      const bookingId = bookingDetails?.data[0]?.book?.booking_id;
+      const groundId = bookingDetails?.data[0]?.ground_id;
+      console.log(bookingDetails.data[0].ground_id, bookingId, groundId, 'bookingid , groundid');
       const response = await fetch(
-        `http://localhost:5000/api/booking/deletebooking?booking_id=${bookingId}&ground_id=${groundId}`,
+        //http://192.168.0.143:5000/api/booking/deletebooking?booking_id=BKG48HYW761X&ground_id=GNDTYMJ738ZY
+        `${BASE_URL}/booking/deletebooking?booking_id=${bookingId}&ground_id=${groundId}`,
         {
           method: 'DELETE',
         }
       );
 
       const data = await response.json();
-
+      console.log(data, 'canceldata')
       if (data.success) {
         Alert.alert('Booking Cancelled', data.message || 'Booking was cancelled');
         setDetailsModalVisible(false);
+        // ✅ Auto-refresh ground/slot data
+        await fetchGroundDetailsagain();  // ← You must define this function
       } else {
         Alert.alert('Failed', data.message || 'Could not cancel booking');
       }
@@ -712,7 +739,7 @@ export default function GroundSlots({ route }) {
               </Button>
               <Button
                 mode="contained"
-                onPress={() => handleBooking(grounds[0].ground_id, selectedSlots, selectedDate)}
+                onPress={() => handleBooking(grounds[0]?.ground_id, selectedSlots, selectedDate)}
                 disabled={selectedSlots.length === 0 || !name || !mobile}
                 style={styles.buttonPrimary}
               >
@@ -778,149 +805,167 @@ export default function GroundSlots({ route }) {
         onRequestClose={() => setDetailsModalVisible(false)}
       >
         <View style={styles.modalBackground}>
-          <View style={styles.cardContainer}>
-            {bookingDetails ? (
-              <>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>📋 Booking Details</Text>
-                </View>
-
-                <View style={styles.cardBody}>
-                  <View style={styles.row}>
-                    <View style={styles.detailBox}>
-                      <MaterialIcons name="calendar-today" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Date</Text>
-                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.date}</Text>
-                    </View>
-                    <View style={styles.detailBox}>
-                      <MaterialCommunityIcons name="identifier" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Booking ID</Text>
-                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.book?.booking_id}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.row}>
-                    <View style={styles.detailBox}>
-                      <MaterialIcons name="access-time" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Slot</Text>
-                      <Text style={styles.cardValue}>
-                        {formatSelectedSlotsDuration(
-                          bookingDetails?.data[0]?.slots?.map(slot => ({ slot }))
-                        )}
-                      </Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+          >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.cardContainer}>
+                {bookingDetails ? (
+                  <>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.cardTitle}>📋 Booking Details</Text>
                     </View>
 
-                  </View>
+                    <View style={styles.cardBody}>
+                      {/* Your Rows */}
+                      <View style={styles.row}>
+                        <View style={styles.detailBox}>
+                          <MaterialIcons name="calendar-today" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Date</Text>
+                          <Text style={styles.cardValue}>{bookingDetails?.data[0]?.date}</Text>
+                        </View>
+                        <View style={styles.detailBox}>
+                          <MaterialCommunityIcons name="identifier" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Booking ID</Text>
+                          <Text style={styles.cardValue}>{bookingDetails?.data[0]?.book?.booking_id}</Text>
+                        </View>
+                      </View>
 
-                  <View style={styles.row}>
-                    <View style={styles.detailBox}>
-                      <FontAwesome name="user" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Name</Text>
-                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.name}</Text>
-                    </View>
-                    <View style={styles.detailBox}>
-                      <FontAwesome name="rupee" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Price</Text>
-                      <Text style={styles.cardValue}>₹{bookingDetails?.data[0]?.book?.price}</Text>
+                      <View style={styles.row}>
+                        <View style={styles.detailBox}>
+                          <MaterialIcons name="access-time" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Slot</Text>
+                          <Text style={styles.cardValue}>
+                            {formatSelectedSlotsDuration(
+                              bookingDetails?.data[0]?.slots?.map(slot => ({ slot }))
+                            )}
+                          </Text>
+                        </View>
+                      </View>
 
-                    </View>
+                      <View style={styles.row}>
+                        <View style={styles.detailBox}>
+                          <FontAwesome name="user" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Name</Text>
+                          <Text style={styles.cardValue}>{bookingDetails?.data[0]?.name}</Text>
+                        </View>
+                        <View style={styles.detailBox}>
+                          <FontAwesome name="rupee" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Price</Text>
+                          <Text style={styles.cardValue}>₹{bookingDetails?.data[0]?.book?.price}</Text>
+                        </View>
+                      </View>
 
-                  </View>
+                      <View style={styles.row}>
+                        <View style={styles.detailBox}>
+                          <FontAwesome name="phone" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Mobile</Text>
+                          <TouchableOpacity onPress={() => Linking.openURL(`tel:${bookingDetails?.data[0]?.mobile}`)}>
+                            <Text style={[styles.cardValue, { color: '#000', textDecorationLine: 'underline' }]}>
+                              {bookingDetails?.data[0]?.mobile}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
 
-                  <View style={styles.row}>
+                      <View style={styles.row}>
+                        <View style={styles.detailBox}>
+                          <FontAwesome name="pencil" size={18} color="#006849" />
+                          <Text style={styles.cardText}>Edit Amount</Text>
 
-                    <View style={styles.detailBox}>
-                      <FontAwesome name="phone" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Mobile</Text>
-                      <Text style={styles.cardValue}>{bookingDetails?.data[0]?.mobile}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.row}>
-                    <View style={styles.detailBox}>
-                      <FontAwesome name="pencil" size={18} color="#006849" />
-                      <Text style={styles.cardText}>Edit Amount</Text>
+                          {isEditing ? (
+                            <>
+                              <TextInput
+                                style={{
+                                  borderColor: '#ccc',
+                                  borderWidth: 1,
+                                  borderRadius: 5,
+                                  padding: 5,
+                                  marginTop: 5,
+                                  width: 100,
+                                }}
+                                placeholder="Enter New Price"
+                                value={editPrice}
+                                keyboardType="numeric"
+                                onChangeText={setEditPrice}
+                              />
+                              <Button
+                                mode="contained"
+                                onPress={handleEditPrice}
+                                style={{ marginTop: 5, backgroundColor: '#006849' }}
+                              >
+                                Update
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              mode="outlined"
+                              onPress={() => {
+                                setIsEditing(true);
+                                setEditPrice(`${bookingDetails?.data[0]?.book?.price}`);
+                              }}
+                              style={{ marginTop: 5 }}
+                            >
+                              Edit
+                            </Button>
+                          )}
+                        </View>
 
-                      {isEditing ? (
-                        <>
-                          <TextInput
-                            style={{
-                              borderColor: '#ccc',
-                              borderWidth: 1,
-                              borderRadius: 5,
-                              padding: 5,
-                              marginTop: 5,
-                              width: 100,
-                            }}
-                            placeholder="Enter New Price"
-                            value={editPrice}
-                            keyboardType="numeric"
-                            onChangeText={setEditPrice}
-                          />
+                        <View style={styles.detailBox}>
+                          <FontAwesome name="trash" size={18} color="red" />
+                          <Text style={styles.cardText}>Cancel Booking</Text>
+
                           <Button
                             mode="contained"
-                            onPress={handleEditPrice}
-                            style={{ marginTop: 5, backgroundColor: '#006849' }}
+                            icon="delete"
+                            style={{ marginTop: 5, backgroundColor: 'red' }}
+                            onPress={handleCancelBooking}
                           >
-                            Update
+                            Delete
                           </Button>
-                        </>
-                      ) : (
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.cardFooter}>
+                      <View style={styles.row}>
                         <Button
-                          mode="outlined"
-                          onPress={() => {
-                            setIsEditing(true);
-                            setEditPrice(`${bookingDetails?.data[0]?.book?.price}`);
-                          }}
-                          style={{ marginTop: 5 }}
+                          mode="contained"
+                          style={{ marginTop: 10, backgroundColor: '#25D366' }}
+                          onPress={() =>
+                            handleWhatsAppShare(
+                              grounds[0]?.latitude,
+                              grounds[0]?.longitude,
+                              grounds[0]?.name
+                            )
+                          }
+                          icon={({ size, color }) => (
+                            <FontAwesome name="whatsapp" size={size} color={color} />
+                          )}
                         >
-                          Edit
+                          Share on WhatsApp
                         </Button>
-                      )}
+
+                        <Button
+                          mode="contained"
+                          style={{ marginTop: 10, marginLeft: 10, backgroundColor: '#006849' }}
+                          onPress={() => setDetailsModalVisible(false)}
+                        >
+                          Close
+                        </Button>
+                      </View>
                     </View>
-                    <View style={styles.detailBox}>
-                      <FontAwesome name="trash" size={18} color="red" />
-                      <Text style={styles.cardText}>Cancel Booking</Text>
-
-                      <Button
-                        mode="contained"
-                        icon="delete"
-                        style={{ marginTop: 5, backgroundColor: 'red' }}
-                        onPress={handleCancelBooking}
-                      >
-                        Delete
-                      </Button>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.cardFooter}>
-                  <View style={styles.row}>
-                    <Button
-                      mode="contained"
-                      style={{ marginTop: 10, backgroundColor: '#25D366' }}
-                      onPress={() => handleWhatsAppShare(grounds[0]?.latitude, grounds[0]?.longitude, grounds[0]?.name)}
-                      icon={({ size, color }) => (
-                        <FontAwesome name="whatsapp" size={size} color={color} />
-                      )}
-                    >
-                      Share on WhatsApp
-                    </Button>
-
-                    <Button mode="contained" style={{ marginTop: 10, marginLeft: 10, backgroundColor: '#006849' }} onPress={() => setDetailsModalVisible(false)}>
-                      Close
-                    </Button>
-                  </View>
-
-                </View>
-              </>
-            ) : (
-              <Text style={styles.loadingText}>Loading...</Text>
-            )}
-          </View>
+                  </>
+                ) : (
+                  <Text style={styles.loadingText}>Loading...</Text>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
-
-    </View>
+    </View >
   );
 }
 
