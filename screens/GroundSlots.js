@@ -35,7 +35,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function GroundSlots({ route }) {
   const navigation = useNavigation();
   const { BASE_URL } = useApi();
-  const IMAGE_BASE_URL = `http://192.168.1.5:5000/uploads`;
+  const IMAGE_BASE_URL = `http://192.168.0.143:5000/uploads`;
  // const { grounds } = route.params;
 
 
@@ -1120,7 +1120,7 @@ const styles = StyleSheet.create({
   column: { width: '50%', paddingHorizontal: 10 },
   grid: { alignItems: 'center', paddingBottom: 20 },
   slotWrapper: { width: '100%', marginBottom: 10, alignItems: 'center' },
-  availableSlot: { backgroundColor: '#28a745', width: '100%' },
+  availableSlot: { backgroundColor: '#006849', width: '100%' },
   buttonText: { color: 'white' },
   buttoncolor: { backgroundColor: '#006849' },
   buttonGroup: {
@@ -1405,7 +1405,7 @@ const styles = StyleSheet.create({
   },
   cardValue: {
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 12,
     color: '#000',
     marginTop: 2,
   },
