@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { TextInput, Button, Text, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApi } from '../src/contexts/ApiContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export default function LoginScreen({ navigation }) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const { BASE_URL } = useApi();
-  console.log(BASE_URL, 'base_url');
+
   const handleLogin = async () => {
     try {
       const response = await fetch(`${BASE_URL}/user/loginUser`, {
@@ -20,24 +22,19 @@ export default function LoginScreen({ navigation }) {
         },
         body: JSON.stringify({
           phone_number: phoneNumber,
-          password: password
+          password: password,
         }),
       });
 
       const data = await response.json();
-      console.log(data, 'data');
-
+      console.log(data, 'userdata')
       if (response.ok) {
-           // ✅ Save user details in AsyncStorage
-      await AsyncStorage.setItem('userData', JSON.stringify(data));
-        console.log('Login success:', data);
+        await AsyncStorage.setItem('userData', JSON.stringify(data));
         setErrorMessage('');
-
         navigation.replace('MainApp');
       } else {
         setErrorMessage(data.message || 'Invalid phone number or password');
       }
-
     } catch (error) {
       console.error('Login error:', error);
     }
@@ -50,20 +47,35 @@ export default function LoginScreen({ navigation }) {
           <Text variant="headlineSmall" style={styles.title}>
             Login
           </Text>
+
+          {/* Phone Number Input with icon */}
           <TextInput
             label="Phone Number"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             keyboardType="phone-pad"
             style={styles.input}
+            mode="outlined"
+            left={<TextInput.Icon icon="phone" />}
           />
+
+          {/* Password Input with icon and toggle */}
           <TextInput
             label="Password"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
+            secureTextEntry={!showPassword}
             style={styles.input}
+            mode="outlined"
+            left={<TextInput.Icon icon="lock" />}
+            right={
+              <TextInput.Icon
+                icon={showPassword ? 'eye-off' : 'eye'}
+                onPress={() => setShowPassword(!showPassword)}
+              />
+            }
           />
+
           <Button
             mode="contained"
             onPress={handleLogin}
@@ -71,13 +83,11 @@ export default function LoginScreen({ navigation }) {
           >
             Login
           </Button>
-        </View>
-        {errorMessage ? (
-  <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>
-    {errorMessage}
-  </Text>
-) : null}
 
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -86,7 +96,7 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#006849', // green background fills the whole screen
+    backgroundColor: '#006849',
   },
   container: {
     flex: 1,
@@ -104,6 +114,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    
   },
   title: {
     marginBottom: 20,
@@ -119,5 +130,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: 150,
     backgroundColor: '#006849',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 10,
   },
 });

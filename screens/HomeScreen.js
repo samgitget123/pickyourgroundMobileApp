@@ -14,7 +14,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [grounddetails, setGroundDetails] = useState([]);
   const { BASE_URL } = useApi();
-  const IMAGE_BASE_URL = `http://192.168.0.143:5000/uploads`;
+  const IMAGE_BASE_URL = `http://192.168.1.6:5000/uploads`;
 
 
   useEffect(() => {

@@ -360,11 +360,13 @@ export default function GroundSlots({ route }) {
       alert('Please fill all required fields and select slots.');
       return;
     }
+    console.log('check1')
     const storedUser = await AsyncStorage.getItem('userData');
     const user = storedUser ? JSON.parse(storedUser) : null;
     const user_id = user.user.id;
     formattedDate = selectDate.toISOString().slice(0, 10);
-
+     console.log('check2')
+    console.log(formattedDate, 'formatted date')
     const payload = {
       ground_id: gid,              // replace with your actual ground id variable
       slots: selectSlots.map(s => s.slot),
@@ -672,7 +674,7 @@ export default function GroundSlots({ route }) {
                         mode="contained"
                         style={[
                           isSelected
-                            ? { backgroundColor: '#006849' }     // Selected - Dark Green
+                            ? { backgroundColor: '#00EE64' }     // Selected - Dark Green
                             : isPastSlot(slot)
                               ? styles.pastSlot                  // Past - Grey
                               : styles.availableSlot            // Available - Green

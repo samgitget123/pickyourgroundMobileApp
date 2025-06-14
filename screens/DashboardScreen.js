@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+
+
 // import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import {
@@ -29,8 +31,9 @@ const DashboardScreen = () => {
   //View booking
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  //Power bi///
 
-  const itemsPerPage = 5;
+  const itemsPerPage = 5
   const { BASE_URL } = useApi();
   console.log(filtered, '--------------------filtered-----------------')
   useEffect(() => {
@@ -164,8 +167,7 @@ const DashboardScreen = () => {
         onPress={() => {
           setSelectedBooking(item);
           setModalVisible(true);
-        }}
-      >View</Text>
+        }}>View</Text>
     </View>
   );
 
@@ -209,6 +211,10 @@ const DashboardScreen = () => {
       <Text>No data found</Text>
     </View>
   );
+    useEffect(() => {
+getSummary();
+  }, []);
+
   const getSummary = () => {
     if (!date) {
       return { totalSlots: 0, totalAmount: 0, monthlyAmount: 0 };
@@ -239,6 +245,13 @@ const DashboardScreen = () => {
 
   // Get the updated summary
   const { totalSlots, totalAmount, monthlyAmount } = getSummary();
+
+
+  /////////////////////////////////POWER BI///////////////////////////////////////////
+// Assume you have an array `bookings` like the one you posted
+
+
+  ///////////////////////////////////////////////////////////////////////////////////
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -250,7 +263,7 @@ const DashboardScreen = () => {
       >
         <View style={styles.container}>
          
-          <Text variant="titleLarge" style={styles.header}>Dashboard </Text>
+          <Text variant="titleLarge" style={styles.header}>Dashboard</Text>
 
           {/* Date Picker */}
           <View style={styles.dateRow}>
@@ -325,8 +338,10 @@ const DashboardScreen = () => {
                 <FlatList
                   data={filtered.slice(page * itemsPerPage, (page + 1) * itemsPerPage)}
                   renderItem={renderItem}
-                  keyExtractor={(item) => item.book?.booking_id || item._id} />
-                ListEmptyComponent={renderEmptyComponent}
+                  keyExtractor={(item) => item.book?.booking_id || item._id} 
+                    ListEmptyComponent={renderEmptyComponent}
+                  />
+                
                 <View style={styles.paginationRow}>
                   <Button
                     mode="outlined"
@@ -335,9 +350,7 @@ const DashboardScreen = () => {
                   >
                     Previous
                   </Button>
-                  <Text style={styles.pageInfo}>
-                    Page {page + 1} of {Math.ceil(filtered.length / itemsPerPage)}
-                  </Text>
+                  <Text style={styles.pageInfo}>Page {page + 1} of {Math.ceil(filtered.length / itemsPerPage)}</Text>
                   <Button
                     mode="outlined"
                     disabled={(page + 1) * itemsPerPage >= filtered.length}
@@ -351,9 +364,7 @@ const DashboardScreen = () => {
           </Card>
           <View style={styles.statsContainer}>
             <View style={styles.statBox}>
-              <Text style={styles.statText}>
-                Today's Slots: <Text style={styles.statStrong}>{totalSlots}</Text>
-              </Text>
+              <Text style={styles.statText}>Today's Slots: <Text style={styles.statStrong}>{totalSlots}</Text></Text>
             </View>
 
             <View style={styles.statBox}>
@@ -387,39 +398,7 @@ const DashboardScreen = () => {
           </Button> */}
 
         </View>
-        {/* ////////////////////Modal for view booking//////////////// */}
-        {/* <Modal
-  visible={modalVisible}
-  transparent={true}
-  animationType="slide"
-  onRequestClose={() => setModalVisible(false)}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContent}>
-      <Text style={styles.modalTitle}>Booking Details</Text>
-
-      {selectedBooking && (
-        <>
-          <Text>Booking ID: {selectedBooking.book?.booking_id}</Text>
-          <Text>Name: {selectedBooking.name}</Text>
-          <Text>Mobile: {selectedBooking.mobile}</Text>
-          <Text>Amount: ₹{selectedBooking.book?.price}</Text>
-          <Text>Date: {selectedBooking.date}</Text>
-          <Text>Slots: {formatSelectedSlotsDuration(selectedBooking.slots.map(slot => ({ slot })))}</Text>
-          <Text>Payment Status: {selectedBooking.paymentStatus}</Text>
-        </>
-      )}
-    <Button
-                          mode="contained"
-                          style={{ marginTop: 10, marginLeft: 10, backgroundColor: '#006849' }}
-                          onPress={() => setModalVisible(false)}
-                        >
-                          Close
-                        </Button>
      
-    </View>
-  </View>
-</Modal> */}
         <Modal
           visible={modalVisible}
           transparent={true}

@@ -5,7 +5,7 @@ import React, { createContext, useContext } from 'react';
 const ApiContext = createContext();
 
 export const ApiProvider = ({ children }) => {
-  const LOCAL_API = 'http://192.168.0.143:5000/api';
+  const LOCAL_API = 'http://192.168.1.6:5000/api';
   const PROD_API = 'https://pickyourground.com/api';
 
   const BASE_URL = __DEV__ ? LOCAL_API : PROD_API;

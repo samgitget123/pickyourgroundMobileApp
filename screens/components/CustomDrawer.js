@@ -3,7 +3,7 @@
 import React from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-const IMAGE_BASE_URL = `http://192.168.0.143:5000/uploads`;
+const IMAGE_BASE_URL = `http://192.168.1.6:5000/uploads`;
 export default function CustomDrawer(props) {
   return (
     <DrawerContentScrollView {...props}>

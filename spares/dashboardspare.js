@@ -164,8 +164,7 @@ const DashboardScreen = () => {
         onPress={() => {
           setSelectedBooking(item);
           setModalVisible(true);
-        }}
-      >View</Text>
+        }}>View</Text>
     </View>
   );
 
@@ -209,6 +208,10 @@ const DashboardScreen = () => {
       <Text>No data found</Text>
     </View>
   );
+    useEffect(() => {
+getSummary();
+  }, []);
+
   const getSummary = () => {
     if (!date) {
       return { totalSlots: 0, totalAmount: 0, monthlyAmount: 0 };
