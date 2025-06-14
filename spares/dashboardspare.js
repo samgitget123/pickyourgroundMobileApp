@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+
+
 // import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import {
@@ -29,8 +31,9 @@ const DashboardScreen = () => {
   //View booking
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  //Power bi///
 
-  const itemsPerPage = 5;
+  const itemsPerPage = 5
   const { BASE_URL } = useApi();
   console.log(filtered, '--------------------filtered-----------------')
   useEffect(() => {
@@ -107,9 +110,10 @@ const DashboardScreen = () => {
 
       // Generate CSV data
       const header = "Ground ID,Booking ID,User Name,Date,Slots,Mobile,Advance,Amount,Status";
-
+//${b.slots?.join("-")}
+//{formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))}
       const rows = filteredByRange.map(b =>
-        `${b.ground_id},${b.book?.booking_id},${b.name},${b.date},${b.slots?.join("-")},${b.mobile},${b.prepaid},${b.book?.price},${b.paymentStatus}`
+        `${b.ground_id},${b.book?.booking_id},${b.name},${b.date},${formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))},${b.mobile},${b.prepaid},${b.book?.price},${b.paymentStatus}`
       );
 
       // Calculate total amount (fallback to 0 if undefined)
@@ -139,7 +143,7 @@ const DashboardScreen = () => {
         alert(`File saved to: ${fileUri}`);
       }
 
-      alert(`Download complete:\n${fileUri}`);
+     // alert(`Download complete:\n${fileUri}`);
     } catch (error) {
       // console.error("Error downloading file:", error);
       alert("Download failed. Please try again.");
@@ -242,6 +246,13 @@ getSummary();
 
   // Get the updated summary
   const { totalSlots, totalAmount, monthlyAmount } = getSummary();
+
+
+  /////////////////////////////////POWER BI///////////////////////////////////////////
+// Assume you have an array `bookings` like the one you posted
+
+
+  ///////////////////////////////////////////////////////////////////////////////////
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -253,7 +264,7 @@ getSummary();
       >
         <View style={styles.container}>
          
-          <Text variant="titleLarge" style={styles.header}>Dashboard </Text>
+          <Text variant="titleLarge" style={styles.header}>Dashboard</Text>
 
           {/* Date Picker */}
           <View style={styles.dateRow}>
@@ -328,8 +339,10 @@ getSummary();
                 <FlatList
                   data={filtered.slice(page * itemsPerPage, (page + 1) * itemsPerPage)}
                   renderItem={renderItem}
-                  keyExtractor={(item) => item.book?.booking_id || item._id} />
-                ListEmptyComponent={renderEmptyComponent}
+                  keyExtractor={(item) => item.book?.booking_id || item._id} 
+                    ListEmptyComponent={renderEmptyComponent}
+                  />
+                
                 <View style={styles.paginationRow}>
                   <Button
                     mode="outlined"
@@ -338,9 +351,7 @@ getSummary();
                   >
                     Previous
                   </Button>
-                  <Text style={styles.pageInfo}>
-                    Page {page + 1} of {Math.ceil(filtered.length / itemsPerPage)}
-                  </Text>
+                  <Text style={styles.pageInfo}>Page {page + 1} of {Math.ceil(filtered.length / itemsPerPage)}</Text>
                   <Button
                     mode="outlined"
                     disabled={(page + 1) * itemsPerPage >= filtered.length}
@@ -354,9 +365,7 @@ getSummary();
           </Card>
           <View style={styles.statsContainer}>
             <View style={styles.statBox}>
-              <Text style={styles.statText}>
-                Today's Slots: <Text style={styles.statStrong}>{totalSlots}</Text>
-              </Text>
+              <Text style={styles.statText}>Today's Slots: <Text style={styles.statStrong}>{totalSlots}</Text></Text>
             </View>
 
             <View style={styles.statBox}>
@@ -390,39 +399,7 @@ getSummary();
           </Button> */}
 
         </View>
-        {/* ////////////////////Modal for view booking//////////////// */}
-        {/* <Modal
-  visible={modalVisible}
-  transparent={true}
-  animationType="slide"
-  onRequestClose={() => setModalVisible(false)}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContent}>
-      <Text style={styles.modalTitle}>Booking Details</Text>
-
-      {selectedBooking && (
-        <>
-          <Text>Booking ID: {selectedBooking.book?.booking_id}</Text>
-          <Text>Name: {selectedBooking.name}</Text>
-          <Text>Mobile: {selectedBooking.mobile}</Text>
-          <Text>Amount: ₹{selectedBooking.book?.price}</Text>
-          <Text>Date: {selectedBooking.date}</Text>
-          <Text>Slots: {formatSelectedSlotsDuration(selectedBooking.slots.map(slot => ({ slot })))}</Text>
-          <Text>Payment Status: {selectedBooking.paymentStatus}</Text>
-        </>
-      )}
-    <Button
-                          mode="contained"
-                          style={{ marginTop: 10, marginLeft: 10, backgroundColor: '#006849' }}
-                          onPress={() => setModalVisible(false)}
-                        >
-                          Close
-                        </Button>
      
-    </View>
-  </View>
-</Modal> */}
         <Modal
           visible={modalVisible}
           transparent={true}

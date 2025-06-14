@@ -17,7 +17,7 @@ export default function DrawerNavigator() {
     headerTintColor: '#000', // Optional: change icon color
   }}>
       {/* <Drawer.Screen name="Home" component={HomeScreen}/> */}
-        <Drawer.Screen name="Slots" component={GroundSlots} />
+        <Drawer.Screen name="Bookings" component={GroundSlots} />
       <Drawer.Screen name="Dashboard" component={DashboardScreen}/>
       <Drawer.Screen name="Logout" component={LogoutScreen} />
     </Drawer.Navigator>

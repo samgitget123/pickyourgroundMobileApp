@@ -21,7 +21,6 @@ import {
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // or other sets like FontAwesome, Ionicons
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -33,7 +32,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 export default function GroundSlots({ route }) {
-  const navigation = useNavigation();
   const { BASE_URL } = useApi();
   const IMAGE_BASE_URL = `http://192.168.0.143:5000/uploads`;
  // const { grounds } = route.params;
@@ -360,11 +358,13 @@ export default function GroundSlots({ route }) {
       alert('Please fill all required fields and select slots.');
       return;
     }
+    console.log('check1')
     const storedUser = await AsyncStorage.getItem('userData');
     const user = storedUser ? JSON.parse(storedUser) : null;
     const user_id = user.user.id;
     formattedDate = selectDate.toISOString().slice(0, 10);
-
+     console.log('check2')
+    console.log(formattedDate, 'formatted date')
     const payload = {
       ground_id: gid,              // replace with your actual ground id variable
       slots: selectSlots.map(s => s.slot),
@@ -672,7 +672,7 @@ export default function GroundSlots({ route }) {
                         mode="contained"
                         style={[
                           isSelected
-                            ? { backgroundColor: '#006849' }     // Selected - Dark Green
+                            ? { backgroundColor: '#00EE64' }     // Selected - Dark Green
                             : isPastSlot(slot)
                               ? styles.pastSlot                  // Past - Grey
                               : styles.availableSlot            // Available - Green
@@ -1120,7 +1120,7 @@ const styles = StyleSheet.create({
   column: { width: '50%', paddingHorizontal: 10 },
   grid: { alignItems: 'center', paddingBottom: 20 },
   slotWrapper: { width: '100%', marginBottom: 10, alignItems: 'center' },
-  availableSlot: { backgroundColor: '#28a745', width: '100%' },
+  availableSlot: { backgroundColor: '#006849', width: '100%' },
   buttonText: { color: 'white' },
   buttoncolor: { backgroundColor: '#006849' },
   buttonGroup: {
@@ -1405,7 +1405,7 @@ const styles = StyleSheet.create({
   },
   cardValue: {
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 12,
     color: '#000',
     marginTop: 2,
   },

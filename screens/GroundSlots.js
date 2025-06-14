@@ -15,13 +15,13 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Pressable,
-  FlatList
+  FlatList,
+  ActivityIndicator
 } from 'react-native';
 
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // or other sets like FontAwesome, Ionicons
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -33,10 +33,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 export default function GroundSlots({ route }) {
-  const navigation = useNavigation();
   const { BASE_URL } = useApi();
   const IMAGE_BASE_URL = `http://192.168.0.143:5000/uploads`;
- // const { grounds } = route.params;
+  // const { grounds } = route.params;
 
 
   //usestates
@@ -58,9 +57,11 @@ export default function GroundSlots({ route }) {
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [grounddetails, setGroundDetails] = useState([]);
   const [userDetails, setUserDetails] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  //////////////ground intro/////////////
+
   // useEffect(() => {
+
   //   const fetchGrounds = async () => {
   //     try {
   //       const storedUser = await AsyncStorage.getItem('userData');
@@ -69,19 +70,23 @@ export default function GroundSlots({ route }) {
   //         console.error('User ID not found in AsyncStorage');
   //         return;
   //       }
-  //       const userData = user.user;
-  //       setUserDetails(userData);
-  //       console.log(userDetails, 'userDeatails')
+
   //       const user_id = user.user.id;
-  //       console.log(user_id, 'user_id')
+  //       setUserDetails(user.user);
+
   //       const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
-  //       console.log(response, '--------------------res-------------------------')
+  //       if (!response.ok) {
+  //         throw new Error('Network response was not ok');
+  //       }
+
   //       const data = await response.json();
-       
-  //       setGroundDetails(data[0]);
-      
+  //       if (data.length > 0) {
+  //         setGroundDetails(data[0]);
+  //       } else {
+  //         console.warn('No ground data found for this user.');
+  //       }
   //     } catch (error) {
-  //       console.error('Error fetching grounds:', error);
+  //       console.error('❌ Error fetching ground details:', error);
   //     } finally {
   //       setLoading(false);
   //     }
@@ -89,29 +94,39 @@ export default function GroundSlots({ route }) {
 
   //   fetchGrounds();
   // }, []);
+
+  //////it will triggere whenever we click on refresh icon
+  
   useEffect(() => {
   const fetchGrounds = async () => {
     try {
       const storedUser = await AsyncStorage.getItem('userData');
-      const user = storedUser ? JSON.parse(storedUser) : null;
-      if (!user || !user.user) {
-        console.error('User ID not found in AsyncStorage');
+      if (!storedUser) {
+        console.warn('⚠️ No userData found in AsyncStorage');
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      if (!user?.user?.id) {
+        console.error('❌ Invalid user object structure:', user);
         return;
       }
 
       const user_id = user.user.id;
       setUserDetails(user.user);
 
+      console.log('✅ user_id fetched:', user_id);
+
       const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error('❌ Network response was not ok');
       }
 
       const data = await response.json();
       if (data.length > 0) {
         setGroundDetails(data[0]);
       } else {
-        console.warn('No ground data found for this user.');
+        console.warn('⚠️ No ground data found for this user.');
       }
     } catch (error) {
       console.error('❌ Error fetching ground details:', error);
@@ -123,9 +138,15 @@ export default function GroundSlots({ route }) {
   fetchGrounds();
 }, []);
 
-  //////it will triggere whenever we click on refresh icon
+  
   const fetchGroundDetailsagain = async () => {
     try {
+       if (!grounddetails?.ground_id) {
+        console.warn("⛔ ground_id not available yet");
+        return;
+      }
+
+      setLoading(true); // Start spinner
       // Convert selectedDate to 'YYYY-MM-DD' format string
       let formattedDate = "";
       const gid = grounddetails.ground_id;
@@ -153,19 +174,21 @@ export default function GroundSlots({ route }) {
       console.log("Booked Slots:", data.slots.booked);
 
       setGroundData(data);
-     
+
     } catch (error) {
       console.error("❌ Error fetching ground details:", error);
+    } finally {
+      setLoading(false); // Stop spinner
     }
   };
   //it ensure always trigger fetch booking details///
   useEffect(() => {
     const fetchGroundDetails = async () => {
       try {
-          if (!grounddetails?.ground_id) {
-        console.warn("⛔ ground_id not available yet");
-        return;
-      }
+        if (!grounddetails?.ground_id) {
+          console.warn("⛔ ground_id not available yet");
+          return;
+        }
         // Convert selectedDate to 'YYYY-MM-DD' format string
         let formattedDate = "";
 
@@ -182,7 +205,7 @@ export default function GroundSlots({ route }) {
         //console.log("Formatted Date for API:", formattedDate);
 
         const res = await fetch(`${BASE_URL}/ground/${grounddetails?.ground_id}?date=${formattedDate}`);
-       // console.log(grounds[0].latitude, '---------------gid-------------');
+        // console.log(grounds[0].latitude, '---------------gid-------------');
         console.log(res, "API response");
 
         if (!res.ok) {
@@ -201,7 +224,7 @@ export default function GroundSlots({ route }) {
     if (selectedDate) {
       fetchGroundDetails();
     }
-  }, [selectedDate]);
+  }, [selectedDate, grounddetails]);
 
   const formatSlot = (slot) => {
     return slot; // Example: return formatted slot
@@ -248,8 +271,6 @@ export default function GroundSlots({ route }) {
     return hour + 1;
   };
 
-  //it converting time to as string
-  // const getFloatTimeFromSlotString = (slotString) => parseFloat(slotString);
 
   //Here we filtering the available slots
   const filteredAvailableSlots = Groundslots.filter(slot => {
@@ -297,14 +318,6 @@ export default function GroundSlots({ route }) {
     }
   };
 
-
-
-  //it will check the past slots
-  // const isPastSlot = (slot) => {
-  //   const slotTime = getFloatTimeFromSlotString(slot.slot);
-  //   // console.log(slotTime, 'slotTime')
-  //   return isToday(selectedDate) && slotTime < getCurrentFloatTime();
-  // };
 
   const isPastSlot = (slot) => {
     const now = new Date();
@@ -354,63 +367,130 @@ export default function GroundSlots({ route }) {
     return `${formatTime(startSlot)} - ${formatTime(endSlot)} (${durationStr.trim()})`;
   };
   //handleBooking
-  const handleBooking = async (gid, selectSlots, selectDate) => {
-    console.log(gid, selectSlots, selectedDate, 'params in handlebooking ')
-    if (selectedSlots.length === 0 || !name || !mobile) {
-      alert('Please fill all required fields and select slots.');
-      return;
-    }
-    console.log('check1')
-    const storedUser = await AsyncStorage.getItem('userData');
-    const user = storedUser ? JSON.parse(storedUser) : null;
-    const user_id = user.user.id;
-    formattedDate = selectDate.toISOString().slice(0, 10);
-     console.log('check2')
-    console.log(formattedDate, 'formatted date')
-    const payload = {
-      ground_id: gid,              // replace with your actual ground id variable
-      slots: selectSlots.map(s => s.slot),
-      date: formattedDate,
-      name: name,
-      // email: userEmail || "",
-      mobile: mobile.replace(/\D/g, ''),
-      comboPack: false,
-      price: Number(price),    // ✅ Convert to number
-      prepaid: Number(prepaid),
-      user_id: user_id || "",
-    };
-    console.log(payload, '------------------payload---------------')
-    try {
-      const response = await fetch(`${BASE_URL}/booking/book-slot`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+  // const handleBooking = async (gid, selectSlots, selectDate) => {
 
-      const data = await response.json();
-      console.log(data, 'Booking success data')
-      if (response.ok) {
-        alert('✅ Booking successful! Your slots have been reserved.');
-        setCartVisible(false);
-        // navigation.navigate('Slots');
-        await fetchGroundDetailsagain();
-        // Reset form and selection if needed
-        setSelectedSlots([]);
-        setName('');
-        setMobile('');
-        setPrice('');
-        setPrepaid('');
-        setPaymentStatus('pending');
-      } else {
-        alert('Booking failed: ' + (data.message || 'Unknown error'));
-      }
-    } catch (error) {
-      console.log(error);
-      alert('Error booking slots: ' + error.message);
-    }
+  //   if (selectedSlots.length === 0 || !name || !mobile) {
+  //     alert('Please fill all required fields and select slots.');
+  //     return;
+  //   }
+  //   const storedUser = await AsyncStorage.getItem('userData');
+  //   const user = storedUser ? JSON.parse(storedUser) : null;
+  //   const user_id = user.user.id;
+  //   formattedDate = selectDate.toISOString().slice(0, 10);
+
+  //   console.log(formattedDate, 'formatted date')
+  //   const payload = {
+  //     ground_id: gid,              // replace with your actual ground id variable
+  //     slots: selectSlots.map(s => s.slot),
+  //     date: formattedDate,
+  //     name: name,
+  //     // email: userEmail || "",
+  //     mobile: mobile.replace(/\D/g, ''),
+  //     comboPack: false,
+  //     price: Number(price),    // ✅ Convert to number
+  //     prepaid: Number(prepaid),
+  //     user_id: user_id || "",
+  //   };
+  //   console.log(payload, '------------------payload---------------')
+  //   try {
+  //     const response = await fetch(`${BASE_URL}/booking/book-slot`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify(payload),
+  //     });
+
+  //     const data = await response.json();
+  //     console.log(data, 'Booking success data')
+  //     if (response.ok) {
+  //       alert('✅ Booking successful! Your slots have been reserved.');
+  //       setCartVisible(false);
+  //       // navigation.navigate('Slots');
+  //       await fetchGroundDetailsagain();
+  //       // Reset form and selection if needed
+  //       setSelectedSlots([]);
+  //       setName('');
+  //       setMobile('');
+  //       setPrice('');
+  //       setPrepaid('');
+  //       setPaymentStatus('pending');
+  //     } else {
+  //       alert('Booking failed: ' + (data.message || 'Unknown error'));
+  //     }
+  //   } catch (error) {
+  //     console.log(error);
+  //     alert('Error booking slots: ' + error.message);
+  //   }
+  // };
+
+  const handleBooking = async (gid, selectSlots, selectDate) => {
+  console.log('DEBUG:', selectSlots, name, mobile);
+
+  if (selectSlots.length === 0 || !name || !mobile) {
+    alert('Please fill all required fields and select slots.');
+    return;
+  }
+
+  console.log('check1');
+  const storedUser = await AsyncStorage.getItem('userData');
+  const user = storedUser ? JSON.parse(storedUser) : null;
+
+  if (!user || !user.user || !user.user.id) {
+    alert('User not logged in or invalid user data');
+    return;
+  }
+
+  const user_id = user.user.id;
+  const formattedDate = selectDate.toISOString().slice(0, 10);
+
+  console.log('check2');
+  console.log(formattedDate, 'formatted date');
+
+  const payload = {
+    ground_id: gid,
+    slots: selectSlots.map(s => s.slot),
+    date: formattedDate,
+    name,
+    mobile: mobile.replace(/\D/g, ''),
+    comboPack: false,
+    price: Number(price),
+    prepaid: Number(prepaid),
+    user_id,
   };
+
+  console.log(payload, '------------------payload---------------');
+
+  try {
+    const response = await fetch(`${BASE_URL}/booking/book-slot`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log(data, 'Booking success data');
+    if (response.ok) {
+      alert('✅ Booking successful! Your slots have been reserved.');
+      setCartVisible(false);
+      await fetchGroundDetailsagain();
+      setSelectedSlots([]);
+      setName('');
+      setMobile('');
+      setPrice('');
+      setPrepaid('');
+      setPaymentStatus('pending');
+    } else {
+      alert('Booking failed: ' + (data.message || 'Unknown error'));
+    }
+  } catch (error) {
+    console.log(error);
+    alert('Error booking slots: ' + error.message);
+  }
+};
+
   const checkIfAnyPastSlot = () => {
     return selectedSlots.some(slot => isPastSlot(slot));
   };
@@ -587,6 +667,12 @@ export default function GroundSlots({ route }) {
 
     </TouchableOpacity>
   );
+  {loading && (
+  <View style={styles.spinnerContainer}>
+    <ActivityIndicator size="large" color="#006849" />
+  </View>
+)}
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -791,7 +877,7 @@ export default function GroundSlots({ route }) {
                 <Icon name="user" size={20} color="#006849" style={styles.icon} />
                 <TextInput
                   placeholder="Enter your Name"
-                   placeholderTextColor="#999"
+                  placeholderTextColor="#999"
                   style={styles.input}
                   value={name}
                   onChangeText={setName}
@@ -803,7 +889,7 @@ export default function GroundSlots({ route }) {
                 <Icon name="phone" size={20} color="#006849" style={styles.icon} />
                 <TextInput
                   placeholder="Enter your Mobile Number"
-                   placeholderTextColor="#999"
+                  placeholderTextColor="#999"
                   style={styles.input}
                   keyboardType="phone-pad"
                   maxLength={13}
@@ -824,7 +910,7 @@ export default function GroundSlots({ route }) {
                 <Icon name="money" size={20} color="#006849" style={styles.icon} />
                 <TextInput
                   placeholder="Total Amount"
-                   placeholderTextColor="#999"
+                  placeholderTextColor="#999"
                   style={styles.input}
                   keyboardType="numeric"
                   value={price}
@@ -837,7 +923,7 @@ export default function GroundSlots({ route }) {
                 <Icon name="rupee" size={20} color="#006849" style={styles.icon} />
                 <TextInput
                   placeholder="Prepaid Amount"
-                   placeholderTextColor="#999"
+                  placeholderTextColor="#999"
                   style={styles.input}
                   keyboardType="numeric"
                   value={prepaid}
@@ -1079,9 +1165,9 @@ export default function GroundSlots({ route }) {
                           style={{ marginTop: 10, backgroundColor: '#25D366' }}
                           onPress={() =>
                             handleWhatsAppShare(
-                             grounddetails?.latitude,
-                             grounddetails?.longitude,
-                             grounddetails?.name
+                              grounddetails?.latitude,
+                              grounddetails?.longitude,
+                              grounddetails?.name
                             )
                           }
                           icon={({ size, color }) => (
@@ -1463,6 +1549,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#000',
   },
+  spinnerContainer: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  height: '100%',
+  width: '100%',
+  backgroundColor: 'rgba(0,0,0,0.2)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 999, // ensures it's above other components
+}
+
   ////////intro//////////
 
 });

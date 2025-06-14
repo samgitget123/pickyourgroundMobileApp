@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-
+import React, { useEffect, useState, useCallback } from "react";
+import { useFocusEffect } from '@react-navigation/native';
 
 // import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -36,10 +36,14 @@ const DashboardScreen = () => {
   const itemsPerPage = 5
   const { BASE_URL } = useApi();
   console.log(filtered, '--------------------filtered-----------------')
-  useEffect(() => {
+  // useEffect(() => {
+  //   fetchBookings();
+  // }, [date]);
+useFocusEffect(
+  useCallback(() => {
     fetchBookings();
-  }, [date]);
-
+  }, [date]) // runs on first focus and when `date` changes
+);
   const fetchBookings = async () => {
     try {
       const formattedDate = date.toISOString().split("T")[0];
@@ -59,7 +63,31 @@ const DashboardScreen = () => {
       console.error("Error fetching bookings:", err);
     }
   };
+// useEffect(() => {
+//    const fetchBookings = async () => {
+//     try {
+//       const formattedDate = date.toISOString().split("T")[0];
+//       const response = await fetch(
+//         `${BASE_URL}/booking/getallbooking?user_id=5621f3e5-9419-4ae5-816f-d04dea908af7`
+//       );
+//       const result = await response.json();
+//       const data = result?.data || [];
+//       // console.log(data, 'boooking data')
+//       const filteredByDate = data.filter((item) =>
+//         item.date?.startsWith(formattedDate)
+//       );
 
+//       setBookings(data);
+//       setFiltered(filteredByDate);
+//     } catch (err) {
+//       console.error("Error fetching bookings:", err);
+//     }
+//   };
+
+//   fetchBookings();
+// }, [date]); // 👈 Run again when date changes
+
+ 
   const handleSearch = () => {
     const { groundId, bookingId, userName } = search;
 
@@ -110,9 +138,10 @@ const DashboardScreen = () => {
 
       // Generate CSV data
       const header = "Ground ID,Booking ID,User Name,Date,Slots,Mobile,Advance,Amount,Status";
-
+      //${b.slots?.join("-")}
+      //{formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))}
       const rows = filteredByRange.map(b =>
-        `${b.ground_id},${b.book?.booking_id},${b.name},${b.date},${b.slots?.join("-")},${b.mobile},${b.prepaid},${b.book?.price},${b.paymentStatus}`
+        `${b.ground_id},${b.book?.booking_id},${b.name},${b.date},${formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))},${b.mobile},${b.prepaid},${b.book?.price},${b.paymentStatus}`
       );
 
       // Calculate total amount (fallback to 0 if undefined)
@@ -142,7 +171,7 @@ const DashboardScreen = () => {
         alert(`File saved to: ${fileUri}`);
       }
 
-      alert(`Download complete:\n${fileUri}`);
+      // alert(`Download complete:\n${fileUri}`);
     } catch (error) {
       // console.error("Error downloading file:", error);
       alert("Download failed. Please try again.");
@@ -154,20 +183,21 @@ const DashboardScreen = () => {
   }
   const renderItem = ({ item }) => (
     <View style={styles.rowItem}>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.book?.booking_id}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.mobile}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.prepaid}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.book?.price}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.date}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{formatSelectedSlotsDuration(item.slots.map(slot => ({ slot })))}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.paymentStatus}</Text>
       <Text
-        style={[styles.cell, { color: 'blue', textDecorationLine: 'underline' }]}
+        style={[styles.cell1, { color: 'blue', textDecorationLine: 'underline' }]}
         onPress={() => {
           setSelectedBooking(item);
           setModalVisible(true);
         }}>View</Text>
+      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
+      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.mobile}</Text>
+      {/* <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.prepaid}</Text> */}
+      <Text style={styles.cellamount} numberOfLines={1} ellipsizeMode="tail">{item.book?.price}</Text>
+      {/* <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.date}</Text> */}
+      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{formatSelectedSlotsDuration(item.slots.map(slot => ({ slot })))}</Text>
+      <Text style={styles.cellstatus} numberOfLines={1} ellipsizeMode="tail">{item.paymentStatus}</Text>
+      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.book?.booking_id}</Text>
+
     </View>
   );
 
@@ -211,8 +241,8 @@ const DashboardScreen = () => {
       <Text>No data found</Text>
     </View>
   );
-    useEffect(() => {
-getSummary();
+  useEffect(() => {
+    getSummary();
   }, []);
 
   const getSummary = () => {
@@ -248,7 +278,7 @@ getSummary();
 
 
   /////////////////////////////////POWER BI///////////////////////////////////////////
-// Assume you have an array `bookings` like the one you posted
+  // Assume you have an array `bookings` like the one you posted
 
 
   ///////////////////////////////////////////////////////////////////////////////////
@@ -262,7 +292,7 @@ getSummary();
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.container}>
-         
+
           <Text variant="titleLarge" style={styles.header}>Dashboard</Text>
 
           {/* Date Picker */}
@@ -325,23 +355,23 @@ getSummary();
             <ScrollView horizontal>
               <View>
                 <View style={styles.tableHeader}>
-                  <Text style={styles.cell}>Booking ID</Text>
+                  <Text style={styles.cell1}>View</Text>
                   <Text style={styles.cell}>Name</Text>
                   <Text style={styles.cell}>Mobile</Text>
-                  <Text style={styles.cell}>Advance</Text>
-                  <Text style={styles.cell}>Amount</Text>
-                  <Text style={styles.cell}>Date</Text>
+                  {/* <Text style={styles.cell}>Advance</Text> */}
+                  <Text style={styles.cellamount}>Amount</Text>
+                  {/* <Text style={styles.cell}>Date</Text> */}
                   <Text style={styles.cell}>Time</Text>
-                  <Text style={styles.cell}>Status</Text>
-                  <Text style={styles.cell}>View</Text>
+                  <Text style={styles.cellstatus}>Status</Text>
+                  <Text style={styles.cell}>Booking ID</Text>
                 </View>
                 <FlatList
                   data={filtered.slice(page * itemsPerPage, (page + 1) * itemsPerPage)}
                   renderItem={renderItem}
-                  keyExtractor={(item) => item.book?.booking_id || item._id} 
-                    ListEmptyComponent={renderEmptyComponent}
-                  />
-                
+                  keyExtractor={(item) => item.book?.booking_id || item._id}
+                  ListEmptyComponent={renderEmptyComponent}
+                />
+
                 <View style={styles.paginationRow}>
                   <Button
                     mode="outlined"
@@ -398,7 +428,7 @@ getSummary();
           </Button> */}
 
         </View>
-     
+
         <Modal
           visible={modalVisible}
           transparent={true}
@@ -520,8 +550,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     overflow: "hidden",
   },
-
+ cell1: {
+    width: 60,               // Fixed width for consistency
+    paddingHorizontal: 8,
+    fontSize: 14,
+    overflow: "hidden",
+  },
+  cellamount:{
+ width: 70,               // Fixed width for consistency
+    paddingHorizontal: 8,
+    fontSize: 14,
+    overflow: "hidden",
+  },
+  cellstatus:{
+width: 70,               // Fixed width for consistency
+    paddingHorizontal: 8,
+    fontSize: 14,
+    overflow: "hidden",
+  },
   paginationRow: {
+    width: 300,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
