@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-
+import React, { useEffect, useState, useCallback } from "react";
+import { useFocusEffect } from '@react-navigation/native';
 
 // import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -10,7 +10,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Modal
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import {
   Text,
@@ -19,8 +20,11 @@ import {
   Card,
 } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from '@react-native-picker/picker';
+
 import * as FileSystem from "expo-file-system";
 import { useApi } from "../src/contexts/ApiContext";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const DashboardScreen = () => {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -31,20 +35,40 @@ const DashboardScreen = () => {
   //View booking
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showStatusOptions, setShowStatusOptions] = useState(null); // bookingId
+
   //Power bi///
 
   const itemsPerPage = 5
   const { BASE_URL } = useApi();
   console.log(filtered, '--------------------filtered-----------------')
-  useEffect(() => {
-    fetchBookings();
-  }, [date]);
-
+  // useEffect(() => {
+  //   fetchBookings();
+  // }, [date]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchBookings();
+    }, [date, showStatusOptions]) // runs on first focus and when `date` changes
+  );
   const fetchBookings = async () => {
     try {
+      const storedUser = await AsyncStorage.getItem('userData');
+      if (!storedUser) {
+        console.warn('⚠️ No userData found in AsyncStorage');
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      if (!user?.user?.id) {
+        console.error('❌ Invalid user object structure:', user);
+        return;
+      }
+
+      const id = user.user.id;
+      //5621f3e5-9419-4ae5-816f-d04dea908af7
       const formattedDate = date.toISOString().split("T")[0];
       const response = await fetch(
-        `${BASE_URL}/booking/getallbooking?user_id=5621f3e5-9419-4ae5-816f-d04dea908af7`
+        `${BASE_URL}/booking/getallbooking?user_id=${id}`
       );
       const result = await response.json();
       const data = result?.data || [];
@@ -59,6 +83,7 @@ const DashboardScreen = () => {
       console.error("Error fetching bookings:", err);
     }
   };
+
 
   const handleSearch = () => {
     const { groundId, bookingId, userName } = search;
@@ -110,10 +135,10 @@ const DashboardScreen = () => {
 
       // Generate CSV data
       const header = "Ground ID,Booking ID,User Name,Date,Slots,Mobile,Advance,Amount,Status";
-//${b.slots?.join("-")}
-//{formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))}
+      //${b.slots?.join("-")}
+      //{formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))}
       const rows = filteredByRange.map(b =>
-        `${b.ground_id},${b.book?.booking_id},${b.name},${b.date},${formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))},${b.mobile},${b.prepaid},${b.book?.price},${b.paymentStatus}`
+        `${b.ground_id},${b.book?.booking_id},${b.name},${b.date},${formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))},${b.mobile},${b.prepaid},${b.book?.price},${b.paymentStatus  === 'success' ? 'Paid' : 'Pending'}`
       );
 
       // Calculate total amount (fallback to 0 if undefined)
@@ -143,7 +168,7 @@ const DashboardScreen = () => {
         alert(`File saved to: ${fileUri}`);
       }
 
-     // alert(`Download complete:\n${fileUri}`);
+      // alert(`Download complete:\n${fileUri}`);
     } catch (error) {
       // console.error("Error downloading file:", error);
       alert("Download failed. Please try again.");
@@ -153,24 +178,102 @@ const DashboardScreen = () => {
   const bookingdetails = (details) => {
     console.log(details, '-------------view details-----------');
   }
-  const renderItem = ({ item }) => (
-    <View style={styles.rowItem}>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.book?.booking_id}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.mobile}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.prepaid}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.book?.price}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.date}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{formatSelectedSlotsDuration(item.slots.map(slot => ({ slot })))}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.paymentStatus}</Text>
-      <Text
-        style={[styles.cell, { color: 'blue', textDecorationLine: 'underline' }]}
-        onPress={() => {
-          setSelectedBooking(item);
-          setModalVisible(true);
-        }}>View</Text>
-    </View>
-  );
+  //   const updateSummary = () => {
+  //   const selectedDateStr = date.toISOString().split("T")[0];
+
+  //   const selectedDateBookings = bookings.filter(booking => booking.date.split("T")[0] === selectedDateStr);
+  //   const totalSlots = selectedDateBookings.reduce((total, booking) => total + booking?.slots?.length, 0);
+  //   const totalAmount = selectedDateBookings.reduce((total, booking) => total + (booking.book?.price || 0), 0);
+
+  //   setTotalSlots(totalSlots);
+  //   setTotalAmount(totalAmount);
+  // };
+
+  const handlePaymentStatusChange = async (bookingId, newStatus) => {
+    console.log(bookingId, newStatus, 'paymentstatus-------');
+    try {
+      const response = await fetch(`${BASE_URL}/booking/updatepaymentstatus`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          paymentStatus: newStatus === "paid" ? "success" : "pending",
+        }),
+      });
+      if (response.ok) {
+        setBookings((prevBookings) =>
+          prevBookings.map((booking) =>
+            booking.book.booking_id === bookingId
+              ? { ...booking, paymentStatus: newStatus === "paid" ? "success" : "pending" }
+              : booking
+          )
+        );
+        fetchBookings();
+        // Optional: hide the dropdown immediately after change
+        // setShowStatusOptions(null);
+
+      } else {
+        console.error("❌ Failed to update payment status");
+      }
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+    } finally {
+      setShowStatusOptions(null); // Close options
+    }
+  };
+
+
+  const renderItem = ({ item }) => {
+    const currentStatus = item.paymentStatus === 'success' ? 'paid' : 'pending';
+
+    return (
+      <View style={styles.rowItem}>
+        <Text
+          style={[styles.cell1, { color: 'blue', textDecorationLine: 'underline' }]}
+          onPress={() => {
+            setSelectedBooking(item);
+            setModalVisible(true);
+          }}>
+          View
+        </Text>
+        <Text style={styles.cellname} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
+        <Text style={styles.cellmobile} numberOfLines={1} ellipsizeMode="tail">{item.mobile}</Text>
+        <Text style={styles.cellamount} numberOfLines={1} ellipsizeMode="tail">{item.book?.price}</Text>
+        <Text style={styles.celltime} numberOfLines={1} ellipsizeMode="tail">
+          {formatSelectedSlotsDuration(item.slots.map(slot => ({ slot })))}
+        </Text>
+
+
+
+        <View style={styles.statusBox}>
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                item.paymentStatus === 'pending' && styles.toggleButtonActivePending
+              ]}
+              onPress={() => handlePaymentStatusChange(item.book.booking_id, 'pending')}
+            >
+              <Text style={styles.toggleText}>No</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                item.paymentStatus === 'success' && styles.toggleButtonActivePaid
+              ]}
+              onPress={() => handlePaymentStatusChange(item.book.booking_id, 'paid')}
+            >
+              <Text style={styles.toggleText}>Yes</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.book?.booking_id}</Text>
+      </View>
+    );
+  };
 
 
   //  bookingDetails?.data[0]?.slots?.map(slot => ({ slot }))
@@ -212,8 +315,8 @@ const DashboardScreen = () => {
       <Text>No data found</Text>
     </View>
   );
-    useEffect(() => {
-getSummary();
+  useEffect(() => {
+    getSummary();
   }, []);
 
   const getSummary = () => {
@@ -249,10 +352,11 @@ getSummary();
 
 
   /////////////////////////////////POWER BI///////////////////////////////////////////
-// Assume you have an array `bookings` like the one you posted
+  // Assume you have an array `bookings` like the one you posted
 
 
   ///////////////////////////////////////////////////////////////////////////////////
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -263,7 +367,7 @@ getSummary();
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.container}>
-         
+
           <Text variant="titleLarge" style={styles.header}>Dashboard</Text>
 
           {/* Date Picker */}
@@ -326,23 +430,23 @@ getSummary();
             <ScrollView horizontal>
               <View>
                 <View style={styles.tableHeader}>
+                  <Text style={styles.cell1}>View</Text>
+                  <Text style={styles.cellname}>Name</Text>
+                  <Text style={styles.cellmobile}>Mobile</Text>
+                  {/* <Text style={styles.cell}>Advance</Text> */}
+                  <Text style={styles.cellamount}>Amount</Text>
+                  {/* <Text style={styles.cell}>Date</Text> */}
+                  <Text style={styles.celltime}>Time</Text>
+                  <Text style={styles.cellstatus}>Is Paid</Text>
                   <Text style={styles.cell}>Booking ID</Text>
-                  <Text style={styles.cell}>Name</Text>
-                  <Text style={styles.cell}>Mobile</Text>
-                  <Text style={styles.cell}>Advance</Text>
-                  <Text style={styles.cell}>Amount</Text>
-                  <Text style={styles.cell}>Date</Text>
-                  <Text style={styles.cell}>Time</Text>
-                  <Text style={styles.cell}>Status</Text>
-                  <Text style={styles.cell}>View</Text>
                 </View>
                 <FlatList
                   data={filtered.slice(page * itemsPerPage, (page + 1) * itemsPerPage)}
                   renderItem={renderItem}
-                  keyExtractor={(item) => item.book?.booking_id || item._id} 
-                    ListEmptyComponent={renderEmptyComponent}
-                  />
-                
+                  keyExtractor={(item) => item.book?.booking_id || item._id}
+                  ListEmptyComponent={renderEmptyComponent}
+                />
+
                 <View style={styles.paginationRow}>
                   <Button
                     mode="outlined"
@@ -399,7 +503,7 @@ getSummary();
           </Button> */}
 
         </View>
-     
+
         <Modal
           visible={modalVisible}
           transparent={true}
@@ -502,7 +606,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: "row",
-    justifyContent: "center",
+    // justifyContent: "center",
     paddingVertical: 10,
     backgroundColor: "#f0f0f0",
     borderTopLeftRadius: 6,
@@ -521,8 +625,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     overflow: "hidden",
   },
-
+  cellname: {
+    width: 80,               // Fixed width for consistency
+    paddingHorizontal: 8,
+    fontSize: 14,
+    overflow: "hidden",
+  },
+  cellmobile: {
+    width: 120,               // Fixed width for consistency
+    paddingHorizontal: 8,
+    fontSize: 14,
+    overflow: "hidden",
+  },
+  cell1: {
+    width: 60,               // Fixed width for consistency
+    paddingHorizontal: 8,
+    fontSize: 14,
+    overflow: "hidden",
+  },
+  cellamount: {
+    width: 70,               // Fixed width for consistency
+    paddingHorizontal: 0,
+    fontSize: 14,
+    overflow: "hidden",
+  },
+  celltime: {
+    width: 150,               // Fixed width for consistency
+    paddingHorizontal: 0,
+    fontSize: 14,
+    overflow: "hidden",
+  },
+  cellstatus: {
+    width: 70,               // Fixed width for consistency
+    paddingHorizontal: 0,
+    fontSize: 14,
+    overflow: "hidden",
+  },
   paginationRow: {
+    width: 300,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -624,7 +764,78 @@ const styles = StyleSheet.create({
     marginTop: 20,
     backgroundColor: '#006849',
   },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    marginVertical: 2,
+    width: 100,
+  },
+  picker: {
+    height: 35,
+    fontSize: 12,
+  },
+  statusBox: {
+    position: 'relative',
+    minWidth: 100,
+    alignItems: 'center',
+  },
 
+  statusBtn: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+
+  dropdownBox: {
+    position: 'absolute',
+    top: 35,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    zIndex: 999,
+    borderRadius: 5,
+    width: 100,
+    elevation: 5,
+  },
+
+  optionText: {
+    padding: 8,
+    textAlign: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  //////spare////
+  statusBox: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 1,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  toggleButton: {
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    backgroundColor: '#f2f2f2',
+  },
+  toggleButtonActivePending: {
+    backgroundColor: '#ffe0b2',
+  },
+  toggleButtonActivePaid: {
+    backgroundColor: '#c8e6c9',
+  },
+  toggleText: {
+    fontSize: 14,
+    color: '#333',
+  },
 
 });
 

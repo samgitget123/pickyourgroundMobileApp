@@ -9,7 +9,7 @@ const Drawer = createDrawerNavigator();
 
 export default function DrawerNavigator() {
   return (
-    <Drawer.Navigator initialRouteName="Slots"
+    <Drawer.Navigator initialRouteName="Bookings"
      drawerContent={(props) => <CustomDrawer {...props} />}
     screenOptions={{
     headerTitle: '', // Hide title text

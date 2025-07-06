@@ -3,14 +3,14 @@
 import React from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-const IMAGE_BASE_URL = `http://192.168.1.6:5000/uploads`;
+const IMAGE_BASE_URL = `https://pickyourground.com/uploads`;
 export default function CustomDrawer(props) {
   return (
     <DrawerContentScrollView {...props}>
       <View style={styles.logoContainer}>
         <Image
           //source={require('../../assets/sample.jpg')} // Replace with your logo path
-          source={{ uri: `${IMAGE_BASE_URL}/logo.PNG` }}
+          source={{ uri: `${IMAGE_BASE_URL}/1751805024605-PYGLOGO.jpeg` }}//1751805024605-PYGLOGO.jpeg it is in the database
           style={styles.logo}
           resizeMode="contain"
         />

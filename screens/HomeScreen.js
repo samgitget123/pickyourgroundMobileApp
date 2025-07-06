@@ -14,7 +14,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [grounddetails, setGroundDetails] = useState([]);
   const { BASE_URL } = useApi();
-  const IMAGE_BASE_URL = `http://192.168.1.6:5000/uploads`;
+  const IMAGE_BASE_URL = `http://192.168.1.12:5000/uploads`;
 
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function HomeScreen() {
   }, []);
 
   const handleBookNow = () => {
-    navigation.navigate('Slots', { grounds: grounds });
+    navigation.navigate('Bookings', { grounds: grounds });
   };
 
   const renderImage = ({ item }) => (

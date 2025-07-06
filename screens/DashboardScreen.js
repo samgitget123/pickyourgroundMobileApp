@@ -10,7 +10,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Modal
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import {
   Text,
@@ -19,8 +20,11 @@ import {
   Card,
 } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from '@react-native-picker/picker';
+
 import * as FileSystem from "expo-file-system";
 import { useApi } from "../src/contexts/ApiContext";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const DashboardScreen = () => {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -31,6 +35,8 @@ const DashboardScreen = () => {
   //View booking
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showStatusOptions, setShowStatusOptions] = useState(null); // bookingId
+
   //Power bi///
 
   const itemsPerPage = 5
@@ -39,16 +45,30 @@ const DashboardScreen = () => {
   // useEffect(() => {
   //   fetchBookings();
   // }, [date]);
-useFocusEffect(
-  useCallback(() => {
-    fetchBookings();
-  }, [date]) // runs on first focus and when `date` changes
-);
+  useFocusEffect(
+    useCallback(() => {
+      fetchBookings();
+    }, [date, showStatusOptions]) // runs on first focus and when `date` changes
+  );
   const fetchBookings = async () => {
     try {
+      const storedUser = await AsyncStorage.getItem('userData');
+      if (!storedUser) {
+        console.warn('⚠️ No userData found in AsyncStorage');
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      if (!user?.user?.id) {
+        console.error('❌ Invalid user object structure:', user);
+        return;
+      }
+
+      const id = user.user.id;
+      //5621f3e5-9419-4ae5-816f-d04dea908af7
       const formattedDate = date.toISOString().split("T")[0];
       const response = await fetch(
-        `${BASE_URL}/booking/getallbooking?user_id=5621f3e5-9419-4ae5-816f-d04dea908af7`
+        `${BASE_URL}/booking/getallbooking?user_id=${id}`
       );
       const result = await response.json();
       const data = result?.data || [];
@@ -63,31 +83,8 @@ useFocusEffect(
       console.error("Error fetching bookings:", err);
     }
   };
-// useEffect(() => {
-//    const fetchBookings = async () => {
-//     try {
-//       const formattedDate = date.toISOString().split("T")[0];
-//       const response = await fetch(
-//         `${BASE_URL}/booking/getallbooking?user_id=5621f3e5-9419-4ae5-816f-d04dea908af7`
-//       );
-//       const result = await response.json();
-//       const data = result?.data || [];
-//       // console.log(data, 'boooking data')
-//       const filteredByDate = data.filter((item) =>
-//         item.date?.startsWith(formattedDate)
-//       );
 
-//       setBookings(data);
-//       setFiltered(filteredByDate);
-//     } catch (err) {
-//       console.error("Error fetching bookings:", err);
-//     }
-//   };
 
-//   fetchBookings();
-// }, [date]); // 👈 Run again when date changes
-
- 
   const handleSearch = () => {
     const { groundId, bookingId, userName } = search;
 
@@ -119,87 +116,308 @@ useFocusEffect(
   }, [search]);
 
 
-  const handleDownload = async () => {
-    try {
-      // Convert to YYYY-MM-DD string format
-      const startStr = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split("T")[0];
-      const endStr = new Date(date).toISOString().split("T")[0];
+  // const handleDownload = async () => {
+  //   try {
+  //     // Convert to YYYY-MM-DD string format
+  //     const startStr = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split("T")[0];
+  //     const endStr = new Date(date).toISOString().split("T")[0];
 
-      // Filter bookings between start of month and selected date
-      const filteredByRange = bookings.filter(b => {
-        const bookingDateStr = b.date?.split("T")[0]; // handles ISO string
-        return bookingDateStr >= startStr && bookingDateStr <= endStr;
-      });
+  //     // Filter bookings between start of month and selected date
+  //     const filteredByRange = bookings.filter(b => {
+  //       const bookingDateStr = b.date?.split("T")[0]; // handles ISO string
+  //       return bookingDateStr >= startStr && bookingDateStr <= endStr;
+  //     });
 
-      if (filteredByRange.length === 0) {
-        alert("No bookings available for selected month.");
-        return;
-      }
+  //     if (filteredByRange.length === 0) {
+  //       alert("No bookings available for selected month.");
+  //       return;
+  //     }
 
-      // Generate CSV data
-      const header = "Ground ID,Booking ID,User Name,Date,Slots,Mobile,Advance,Amount,Status";
-      //${b.slots?.join("-")}
-      //{formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))}
-      const rows = filteredByRange.map(b =>
-        `${b.ground_id},${b.book?.booking_id},${b.name},${b.date},${formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))},${b.mobile},${b.prepaid},${b.book?.price},${b.paymentStatus}`
-      );
+  //     // Generate CSV data
+  //     const header = "Ground ID,Booking ID,User Name,Date,Slots,Mobile,Advance,Amount,Status";
+  //     //${b.slots?.join("-")}
+  //     //{formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))}
+  //     const rows = filteredByRange.map(b =>
+  //       `${b.ground_id},${b.book?.booking_id},${b.name},${b.date},${formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))},${b.mobile},${b.prepaid},${b.book?.price},${b.paymentStatus  === 'success' ? 'Paid' : 'Pending'}`
+  //     );
 
-      // Calculate total amount (fallback to 0 if undefined)
-      const totalAmount = filteredByRange.reduce(
-        (sum, b) => sum + (Number(b.book?.price) || 0),
-        0
-      );
+  //     // Calculate total amount (fallback to 0 if undefined)
+  //     const totalAmount = filteredByRange.reduce(
+  //       (sum, b) => sum + (Number(b.book?.price) || 0),
+  //       0
+  //     );
 
-      // Append total amount as a new row (you can format this as you prefer)
-      const totalRow = `,,,,,,Total Amount,${totalAmount}`;
+  //     // Append total amount as a new row (you can format this as you prefer)
+  //     const totalRow = `,,,,,,Total Amount,${totalAmount}`;
 
-      // Combine all into CSV string
-      const csvString = [header, ...rows, totalRow].join("\n");
+  //     // Combine all into CSV string
+  //     const csvString = [header, ...rows, totalRow].join("\n");
 
-      // File path and name
-      const filename = `bookings_${startStr}_to_${endStr}.csv`;
-      const fileUri = FileSystem.documentDirectory + filename;
+  //     // File path and name
+  //     const filename = `bookings_${startStr}_to_${endStr}.csv`;
+  //     const fileUri = FileSystem.documentDirectory + filename;
 
-      // Write and share
-      await FileSystem.writeAsStringAsync(fileUri, csvString, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
+  //     // Write and share
+  //     await FileSystem.writeAsStringAsync(fileUri, csvString, {
+  //       encoding: FileSystem.EncodingType.UTF8,
+  //     });
 
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri);
-      } else {
-        alert(`File saved to: ${fileUri}`);
-      }
+  //     if (await Sharing.isAvailableAsync()) {
+  //       await Sharing.shareAsync(fileUri);
+  //     } else {
+  //       alert(`File saved to: ${fileUri}`);
+  //     }
 
-      // alert(`Download complete:\n${fileUri}`);
-    } catch (error) {
-      // console.error("Error downloading file:", error);
-      alert("Download failed. Please try again.");
+  //     // alert(`Download complete:\n${fileUri}`);
+  //   } catch (error) {
+  //     // console.error("Error downloading file:", error);
+  //     alert("Download failed. Please try again.");
+  //   }
+  // };
+
+// const handleDownload = async () => {
+//   try {
+//     const startStr = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split("T")[0];
+//     const endStr = new Date(date).toISOString().split("T")[0];
+
+//     const filteredByRange = bookings.filter(b => {
+//       const bookingDateStr = b.date?.split("T")[0];
+//       return bookingDateStr >= startStr && bookingDateStr <= endStr;
+//     });
+
+//     if (filteredByRange.length === 0) {
+//       alert("No bookings available for selected month.");
+//       return;
+//     }
+
+//     // Heading lines (not part of CSV table)
+//     const headingLines = [
+//       "PickYourGround - Monthly Booking Report",
+//       `Report Period: ${startStr} to ${endStr}`,
+//       "Generated by: PickYourGround App",
+//       "" // empty line before table
+//     ];
+
+//     // Table header
+//     const tableHeader = "Ground ID,Booking ID,User Name,Date,Slots,Mobile,Advance,Amount,Status";
+
+//     // Table rows
+//     const rows = filteredByRange.map(b =>
+//       `${b.ground_id},${b.book?.booking_id},${b.name},${b.date},${formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))},${b.mobile},${b.prepaid},${b.book?.price},${b.paymentStatus === 'success' ? 'Paid' : 'Pending'}`
+//     );
+
+//     // Total row
+//     const totalAmount = filteredByRange.reduce(
+//       (sum, b) => sum + (Number(b.book?.price) || 0),
+//       0
+//     );
+//     const totalRow = `,,,,,,Total Amount,${totalAmount},`;
+
+//     // Footer lines (outside table)
+//     const footerLines = [
+//       "", // spacing
+//       `Report Generated On: ${new Date().toLocaleString()}`,
+//       "Thank you for using PickYourGround!"
+//     ];
+
+//     // Combine everything
+//     const csvLines = [
+//       ...headingLines,
+//       tableHeader,
+//       ...rows,
+//       totalRow,
+//       ...footerLines
+//     ];
+
+//     const csvContent = csvLines.join("\n");
+//     const filename = `Booking_Report_${startStr}_to_${endStr}.csv`;
+//     const fileUri = FileSystem.documentDirectory + filename;
+
+//     await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+//       encoding: FileSystem.EncodingType.UTF8,
+//     });
+
+//     if (await Sharing.isAvailableAsync()) {
+//       await Sharing.shareAsync(fileUri);
+//     } else {
+//       alert(`File saved to: ${fileUri}`);
+//     }
+
+//   } catch (error) {
+//     console.error("Error generating CSV report:", error);
+//     alert("Download failed. Please try again.");
+//   }
+// };
+
+
+
+
+const handleDownload = async () => {
+  try {
+    const startStr = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split("T")[0];
+    const endStr = new Date(date).toISOString().split("T")[0];
+
+    const filteredByRange = bookings.filter(b => {
+      const bookingDateStr = b.date?.split("T")[0];
+      return bookingDateStr >= startStr && bookingDateStr <= endStr;
+    });
+
+    if (filteredByRange.length === 0) {
+      alert("No bookings available for selected month.");
+      return;
     }
-  };
+
+    // Header & Info Lines
+    const headingLines = [
+      "PickYourGround - Monthly Booking Report",
+      `Report Period: ${startStr} to ${endStr}`,
+      "Generated by: PickYourGround App",
+      ""
+    ];
+
+    const tableHeader = "Ground ID,Booking ID,User Name,Date,Slots,Mobile,Advance,Amount,Status";
+
+    const rows = filteredByRange.map(b =>
+      `${b.ground_id},${b.book?.booking_id},${b.name},${b.date},${formatSelectedSlotsDuration(b.slots.map(slot => ({ slot })))},${b.mobile},${b.prepaid},${b.book?.price},${b.paymentStatus === 'success' ? 'Paid' : 'Pending'}`
+    );
+
+    const totalAmount = filteredByRange.reduce((sum, b) => sum + (Number(b.book?.price) || 0), 0);
+    const totalRow = `,,,,,,Total Amount,${totalAmount},`;
+
+    const footerLines = [
+      "",
+      `Report Generated On: ${new Date().toLocaleString()}`,
+      "Thank you for using PickYourGround!"
+    ];
+
+    const csvLines = [
+      ...headingLines,
+      tableHeader,
+      ...rows,
+      totalRow,
+      ...footerLines
+    ];
+
+    const csvContent = csvLines.join("\n");
+
+    // File name and path
+    const filename = `Booking_Report_${startStr}_to_${endStr}.csv`;
+    const fileUri = FileSystem.documentDirectory + filename;
+
+    // Write file with correct encoding
+    await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+
+    // Share or alert
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Share Booking Report',
+        UTI: 'public.comma-separated-values-text'
+      });
+    } else {
+      alert(`CSV file saved to:\n${fileUri}`);
+    }
+
+  } catch (error) {
+    console.error("Error generating CSV report:", error);
+    alert("Download failed. Please try again.");
+  }
+};
+
+
 
   const bookingdetails = (details) => {
     console.log(details, '-------------view details-----------');
   }
-  const renderItem = ({ item }) => (
-    <View style={styles.rowItem}>
-      <Text
-        style={[styles.cell1, { color: 'blue', textDecorationLine: 'underline' }]}
-        onPress={() => {
-          setSelectedBooking(item);
-          setModalVisible(true);
-        }}>View</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.mobile}</Text>
-      {/* <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.prepaid}</Text> */}
-      <Text style={styles.cellamount} numberOfLines={1} ellipsizeMode="tail">{item.book?.price}</Text>
-      {/* <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.date}</Text> */}
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{formatSelectedSlotsDuration(item.slots.map(slot => ({ slot })))}</Text>
-      <Text style={styles.cellstatus} numberOfLines={1} ellipsizeMode="tail">{item.paymentStatus}</Text>
-      <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.book?.booking_id}</Text>
+ 
 
-    </View>
-  );
+  const handlePaymentStatusChange = async (bookingId, newStatus) => {
+    console.log(bookingId, newStatus, 'paymentstatus-------');
+    try {
+      const response = await fetch(`${BASE_URL}/booking/updatepaymentstatus`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          paymentStatus: newStatus === "paid" ? "success" : "pending",
+        }),
+      });
+      if (response.ok) {
+        setBookings((prevBookings) =>
+          prevBookings.map((booking) =>
+            booking.book.booking_id === bookingId
+              ? { ...booking, paymentStatus: newStatus === "paid" ? "success" : "pending" }
+              : booking
+          )
+        );
+        fetchBookings();
+        // Optional: hide the dropdown immediately after change
+        // setShowStatusOptions(null);
+
+      } else {
+        console.error("❌ Failed to update payment status");
+      }
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+    } finally {
+      setShowStatusOptions(null); // Close options
+    }
+  };
+
+
+  const renderItem = ({ item }) => {
+    const currentStatus = item.paymentStatus === 'success' ? 'paid' : 'pending';
+
+    return (
+      <View style={styles.rowItem}>
+        <Text
+          style={[styles.cell1, { color: 'blue', textDecorationLine: 'underline' }]}
+          onPress={() => {
+            setSelectedBooking(item);
+            setModalVisible(true);
+          }}>
+          View
+        </Text>
+        <Text style={styles.cellname} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
+        <Text style={styles.cellmobile} numberOfLines={1} ellipsizeMode="tail">{item.mobile}</Text>
+        <Text style={styles.cellamount} numberOfLines={1} ellipsizeMode="tail">{item.book?.price}</Text>
+        <Text style={styles.celltime} numberOfLines={1} ellipsizeMode="tail">
+          {formatSelectedSlotsDuration(item.slots.map(slot => ({ slot })))}
+        </Text>
+
+
+
+        <View style={styles.statusBox}>
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                item.paymentStatus === 'pending' && styles.toggleButtonActivePending
+              ]}
+              onPress={() => handlePaymentStatusChange(item.book.booking_id, 'pending')}
+            >
+              <Text style={styles.toggleText}>No</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                item.paymentStatus === 'success' && styles.toggleButtonActivePaid
+              ]}
+              onPress={() => handlePaymentStatusChange(item.book.booking_id, 'paid')}
+            >
+              <Text style={styles.toggleText}>Yes</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <Text style={styles.cell} numberOfLines={1} ellipsizeMode="tail">{item.book?.booking_id}</Text>
+      </View>
+    );
+  };
 
 
   //  bookingDetails?.data[0]?.slots?.map(slot => ({ slot }))
@@ -282,6 +500,7 @@ useFocusEffect(
 
 
   ///////////////////////////////////////////////////////////////////////////////////
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -356,14 +575,14 @@ useFocusEffect(
               <View>
                 <View style={styles.tableHeader}>
                   <Text style={styles.cell1}>View</Text>
-                  <Text style={styles.cell}>Name</Text>
-                  <Text style={styles.cell}>Mobile</Text>
+                  <Text style={styles.cellname}>Name</Text>
+                  <Text style={styles.cellmobile}>Mobile</Text>
                   {/* <Text style={styles.cell}>Advance</Text> */}
                   <Text style={styles.cellamount}>Amount</Text>
                   {/* <Text style={styles.cell}>Date</Text> */}
-                  <Text style={styles.cell}>Time</Text>
-                  <Text style={styles.cellstatus}>Status</Text>
-                  <Text style={styles.cell}>Booking ID</Text>
+                  <Text style={styles.celltime}>Time</Text>
+                  <Text style={styles.cellstatus}>Is Paid</Text>
+                  <Text style={styles.cell}>B-ID</Text>
                 </View>
                 <FlatList
                   data={filtered.slice(page * itemsPerPage, (page + 1) * itemsPerPage)}
@@ -531,7 +750,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: "row",
-    justifyContent: "center",
+    // justifyContent: "center",
     paddingVertical: 10,
     backgroundColor: "#f0f0f0",
     borderTopLeftRadius: 6,
@@ -545,26 +764,44 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   cell: {
+    width: 150,               // Fixed width for consistency
+    paddingLeft: 40,
+    fontSize: 14,
+    overflow: "hidden",
+  },
+  cellname: {
+    width: 80,               // Fixed width for consistency
+    paddingHorizontal: 8,
+    fontSize: 14,
+    overflow: "hidden",
+  },
+  cellmobile: {
     width: 120,               // Fixed width for consistency
     paddingHorizontal: 8,
     fontSize: 14,
     overflow: "hidden",
   },
- cell1: {
+  cell1: {
     width: 60,               // Fixed width for consistency
     paddingHorizontal: 8,
     fontSize: 14,
     overflow: "hidden",
   },
-  cellamount:{
- width: 70,               // Fixed width for consistency
+  cellamount: {
+    width: 70,               // Fixed width for consistency
     paddingHorizontal: 8,
     fontSize: 14,
     overflow: "hidden",
   },
-  cellstatus:{
-width: 70,               // Fixed width for consistency
+  celltime: {
+    width: 150,               // Fixed width for consistency
     paddingHorizontal: 8,
+    fontSize: 14,
+    overflow: "hidden",
+  },
+  cellstatus: {
+    width: 100,               // Fixed width for consistency
+    paddingHorizontal: 0,
     fontSize: 14,
     overflow: "hidden",
   },
@@ -671,7 +908,79 @@ width: 70,               // Fixed width for consistency
     marginTop: 20,
     backgroundColor: '#006849',
   },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    marginVertical: 2,
+    width: 100,
+  },
+  picker: {
+    height: 35,
+    fontSize: 12,
+  },
+  statusBox: {
+    position: 'relative',
+    minWidth: 100,
+    alignItems: 'center',
+  },
 
+  statusBtn: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+
+  dropdownBox: {
+    position: 'absolute',
+    top: 35,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    zIndex: 999,
+    borderRadius: 5,
+    width: 100,
+    elevation: 5,
+  },
+
+  optionText: {
+    padding: 8,
+    textAlign: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  //////spare////
+  statusBox: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 1,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  toggleButton: {
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    backgroundColor: '#f2f2f2',
+  },
+  toggleButtonActivePending: {
+    backgroundColor: '#ffe0b2',  //red
+  },
+  toggleButtonActivePaid: {
+    backgroundColor: '#c8e6c9',
+  },
+  toggleText: {
+    fontSize: 14,
+    color: '#333',
+     width: 40,    
+  },
 
 });
 
