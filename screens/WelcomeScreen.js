@@ -7,23 +7,25 @@ const { width } = Dimensions.get('window');
 
 const slides = [
   {
-    key: '1',
-    title: 'Book Grounds Easily',
-    text: 'Find and book sports grounds near you in seconds.',
-    image: require('../assets/icon.png'),
-  },
+  key: '1',
+  title: 'Manage Ground Bookings',
+  text: 'Easily view and manage all your ground bookings in one place.',
+  image: require('../assets/bys.png'),
+},
+
   {
-    key: '2',
-    title: 'Secure Your Slot',
-    text: 'Select your date and time and pay securely in-app.',
-    image: require('../assets/splash-icon.png'),
-  },
+  key: '2',
+  title: 'Schedule Time Slots',
+  text: 'Create and update available slots for each ground with flexible time options.',
+  image: require('../assets/schedule.png'),
+},
+
   {
-    key: '3',
-    title: 'Play with Confidence',
-    text: 'Get confirmation and enjoy your game hassle-free.',
-    image: require('../assets/adaptive-icon.png'),
-  },
+  key: '3',
+  title: 'Track Revenue & Reports',
+  text: 'Get detailed booking reports and income summaries to grow your business.',
+  image: require('../assets/report.png'),
+},
 ];
 
 export default function WelcomeScreen({ navigation }) {

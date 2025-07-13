@@ -32,9 +32,16 @@ export default function LoginScreen({ navigation }) {
       });
 
       const data = await response.json();
-      console.log(data, 'userdata');
+      console.log(data, 'userdatainconsole')
       if (response.ok) {
-        await AsyncStorage.setItem('userData', JSON.stringify(data));
+        const currentTime = new Date().getTime(); // in ms
+        const loginData = {
+          user: data.user,
+          token: data.token,
+          loginTime: currentTime,
+        };
+
+        await AsyncStorage.setItem('userData', JSON.stringify(loginData));
         setErrorMessage('');
         navigation.replace('MainApp');
       } else {
@@ -47,7 +54,7 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleResetPassword = async () => {
-    console.log('reset password');
+
     try {
       //http://192.168.1.6:5000/api/ground/resetPassword
       const response = await fetch(`${BASE_URL}/ground/resetPassword`, {
@@ -149,20 +156,20 @@ export default function LoginScreen({ navigation }) {
               left={<TextInput.Icon icon="phone" />}
             />
             <TextInput
-  label="New Password"
-  value={newPassword}
-  onChangeText={setNewPassword}
-  secureTextEntry={!showPassword}
-  style={styles.input}
-  mode="outlined"
-  left={<TextInput.Icon icon="lock-reset" />}
-  right={
-    <TextInput.Icon
-      icon={showPassword ? 'eye-off' : 'eye'}
-      onPress={() => setShowPassword(!showPassword)}
-    />
-  }
-/>
+              label="New Password"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry={!showPassword}
+              style={styles.input}
+              mode="outlined"
+              left={<TextInput.Icon icon="lock-reset" />}
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? 'eye-off' : 'eye'}
+                  onPress={() => setShowPassword(!showPassword)}
+                />
+              }
+            />
 
             {/* <TextInput
               label="New Password"

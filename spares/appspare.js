@@ -13,38 +13,33 @@ import { ApiProvider } from './src/contexts/ApiContext';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  const [firstLaunch, setFirstLaunch] = useState(null);
   const [initialRoute, setInitialRoute] = useState(null);
 
-  // GLOBAL FONT SETTING
   useEffect(() => {
-    // LogBox.ignoreLogs(['Warning: ...']);
-
-    // if (Text.defaultProps == null) Text.defaultProps = {};
-    // Text.defaultProps.allowFontScaling = false;
-    // Text.defaultProps.style = {
-    //   fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-    //   fontSize: 12,
-    //   fontWeight: '300',
-    //   color: '#fff',
-    // };
-
+    
     const init = async () => {
+      // Check if first launch
       const launchFlag = await AsyncStorage.getItem('alreadyLaunched');
-      const storedData = await AsyncStorage.getItem('userData');
-
-      if (!launchFlag) {
+      if (launchFlag === null) {
         await AsyncStorage.setItem('alreadyLaunched', 'true');
-        setInitialRoute('Welcome');
-      } else if (storedData) {
+        setFirstLaunch(true);
+      } else {
+        setFirstLaunch(false);
+      }
+
+      // Check login status
+      const storedData = await AsyncStorage.getItem('userData');
+      if (storedData) {
         const { loginTime } = JSON.parse(storedData);
         const now = new Date().getTime();
-        const expired = now - loginTime > 24 * 60 * 60 * 1000;
+        const twentyFourHours = 24 * 60 * 60 * 1000;
 
-        if (expired) {
+        if (now - loginTime < twentyFourHours) {
+          setInitialRoute('MainApp');
+        } else {
           await AsyncStorage.removeItem('userData');
           setInitialRoute('Login');
-        } else {
-          setInitialRoute('MainApp');
         }
       } else {
         setInitialRoute('Login');
@@ -54,14 +49,31 @@ export default function App() {
     init();
   }, []);
 
-  if (!initialRoute) return null;
+  if (firstLaunch === null || initialRoute === null) return null;
+///////////////Global font setting////////////////////////////
+//  useEffect(() => {
+//     // Suppress any specific warnings if needed
+//     LogBox.ignoreLogs(['Warning: ...']);
 
+//     // Set global default for all <Text>
+//     if (Text.defaultProps == null) Text.defaultProps = {};
+//     Text.defaultProps.allowFontScaling = false;
+//     Text.defaultProps.style = {
+//       fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+//       fontSize: 14,
+//       fontWeight: '400',
+//       color: '#000',
+//     };
+//   }, []);
   return (
     <ApiProvider>
       <PaperProvider>
         <NavigationContainer>
-          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
-            <Stack.Screen name="Welcome" component={WelcomeScreen} />
+          <Stack.Navigator
+            screenOptions={{ headerShown: false }}
+            initialRouteName={firstLaunch ? 'Welcome' : initialRoute}
+          >
+            {firstLaunch && <Stack.Screen name="Welcome" component={WelcomeScreen} />}
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="MainApp" component={DrawerNavigator} />
           </Stack.Navigator>

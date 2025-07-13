@@ -20,11 +20,12 @@ export default function LogoutScreen() {
         {
           text: 'Yes',
           onPress: async () => {
-            await AsyncStorage.removeItem('userData');
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
+           await AsyncStorage.removeItem('userData');
+  navigation.replace('Login');
+            // navigation.reset({
+            //   index: 0,
+            //   routes: [{ name: 'Login' }],
+            // });
           },
         },
       ]);

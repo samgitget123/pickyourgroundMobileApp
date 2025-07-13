@@ -30,13 +30,13 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useApi } from '../src/contexts/ApiContext';
 import ConvertSlotToTimeRange from '../Helpers/ConvertSlotToTimeRange';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import Footer from './Footer';
 
 export default function GroundSlots({ route }) {
   const { BASE_URL } = useApi();
   const IMAGE_BASE_URL = `http://192.168.0.143:5000/uploads`;
   // const { grounds } = route.params;
-
+ const currentYear = new Date().getFullYear();
 
   //usestates
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -60,88 +60,51 @@ export default function GroundSlots({ route }) {
   const [loading, setLoading] = useState(false);
 
 
-  // useEffect(() => {
-
-  //   const fetchGrounds = async () => {
-  //     try {
-  //       const storedUser = await AsyncStorage.getItem('userData');
-  //       const user = storedUser ? JSON.parse(storedUser) : null;
-  //       if (!user || !user.user) {
-  //         console.error('User ID not found in AsyncStorage');
-  //         return;
-  //       }
-
-  //       const user_id = user.user.id;
-  //       setUserDetails(user.user);
-
-  //       const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
-  //       if (!response.ok) {
-  //         throw new Error('Network response was not ok');
-  //       }
-
-  //       const data = await response.json();
-  //       if (data.length > 0) {
-  //         setGroundDetails(data[0]);
-  //       } else {
-  //         console.warn('No ground data found for this user.');
-  //       }
-  //     } catch (error) {
-  //       console.error('❌ Error fetching ground details:', error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchGrounds();
-  // }, []);
-
-  //////it will triggere whenever we click on refresh icon
-  
   useEffect(() => {
-  const fetchGrounds = async () => {
-    try {
-      const storedUser = await AsyncStorage.getItem('userData');
-      if (!storedUser) {
-        console.warn('⚠️ No userData found in AsyncStorage');
-        return;
+    const fetchGrounds = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('userData');
+        if (!storedUser) {
+          console.warn('⚠️ No userData found in AsyncStorage');
+          return;
+        }
+
+        const user = JSON.parse(storedUser);
+        if (!user?.user?.id) {
+          console.error('❌ Invalid user object structure:', user);
+          return;
+        }
+
+        const user_id = user.user.id;
+        setUserDetails(user.user);
+
+
+
+        const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
+        if (!response.ok) {
+          throw new Error('❌ Network response was not ok');
+        }
+
+        const data = await response.json();
+        if (data.length > 0) {
+          setGroundDetails(data[0]);
+        } else {
+          console.warn('⚠️ No ground data found for this user.');
+        }
+      } catch (error) {
+        console.error('❌ Error fetching ground details:', error);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const user = JSON.parse(storedUser);
-      if (!user?.user?.id) {
-        console.error('❌ Invalid user object structure:', user);
-        return;
-      }
+    fetchGrounds();
+  }, []);
 
-      const user_id = user.user.id;
-      setUserDetails(user.user);
 
-      console.log('✅ user_id fetched:', user_id);
-
-      const response = await fetch(`${BASE_URL}/ground/user/grounds?userId=${user_id}`);
-      if (!response.ok) {
-        throw new Error('❌ Network response was not ok');
-      }
-
-      const data = await response.json();
-      if (data.length > 0) {
-        setGroundDetails(data[0]);
-      } else {
-        console.warn('⚠️ No ground data found for this user.');
-      }
-    } catch (error) {
-      console.error('❌ Error fetching ground details:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchGrounds();
-}, []);
-
-  
   const fetchGroundDetailsagain = async () => {
     try {
-       if (!grounddetails?.ground_id) {
+      if (!grounddetails?.ground_id) {
         console.warn("⛔ ground_id not available yet");
         return;
       }
@@ -161,17 +124,17 @@ export default function GroundSlots({ route }) {
         throw new Error("selectedDate is not a valid Date or string");
       }
 
-      console.log("---------------formattedDate---------------", formattedDate);
+
 
       const res = await fetch(`${BASE_URL}/ground/${grounddetails.ground_id}?date=${formattedDate}`);
-      console.log(res, "API response");
+
 
       if (!res.ok) {
         throw new Error("Network response was not ok");
       }
 
       const data = await res.json();
-      console.log("Booked Slots:", data.slots.booked);
+
 
       setGroundData(data);
 
@@ -202,25 +165,24 @@ export default function GroundSlots({ route }) {
           throw new Error("selectedDate is not a valid Date or string");
         }
 
-        //console.log("Formatted Date for API:", formattedDate);
+
 
         const res = await fetch(`${BASE_URL}/ground/${grounddetails?.ground_id}?date=${formattedDate}`);
-        // console.log(grounds[0].latitude, '---------------gid-------------');
-        console.log(res, "API response");
+
 
         if (!res.ok) {
           throw new Error("Network response was not ok");
         }
 
         const data = await res.json();
-        console.log("Booked Slots:", data.slots.booked);
+
 
         setGroundData(data);
       } catch (error) {
         console.error("❌ Error fetching ground details:", error);
       }
     };
-    console.log(groundData, 'grounddata')
+
     if (selectedDate) {
       fetchGroundDetails();
     }
@@ -285,8 +247,8 @@ export default function GroundSlots({ route }) {
 
   //Omchange date function
   const onChangeDate = (event, date) => {
-    setShowPicker(Platform.OS === 'ios');
-    if (date) {
+    setShowPicker(false);
+    if (event.type === "set" && date) {
       setSelectedDate(date);
       setSelectedSlots([]); // Clear selected slots when date changes
     }
@@ -366,130 +328,71 @@ export default function GroundSlots({ route }) {
 
     return `${formatTime(startSlot)} - ${formatTime(endSlot)} (${durationStr.trim()})`;
   };
-  //handleBooking
-  // const handleBooking = async (gid, selectSlots, selectDate) => {
-
-  //   if (selectedSlots.length === 0 || !name || !mobile) {
-  //     alert('Please fill all required fields and select slots.');
-  //     return;
-  //   }
-  //   const storedUser = await AsyncStorage.getItem('userData');
-  //   const user = storedUser ? JSON.parse(storedUser) : null;
-  //   const user_id = user.user.id;
-  //   formattedDate = selectDate.toISOString().slice(0, 10);
-
-  //   console.log(formattedDate, 'formatted date')
-  //   const payload = {
-  //     ground_id: gid,              // replace with your actual ground id variable
-  //     slots: selectSlots.map(s => s.slot),
-  //     date: formattedDate,
-  //     name: name,
-  //     // email: userEmail || "",
-  //     mobile: mobile.replace(/\D/g, ''),
-  //     comboPack: false,
-  //     price: Number(price),    // ✅ Convert to number
-  //     prepaid: Number(prepaid),
-  //     user_id: user_id || "",
-  //   };
-  //   console.log(payload, '------------------payload---------------')
-  //   try {
-  //     const response = await fetch(`${BASE_URL}/booking/book-slot`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify(payload),
-  //     });
-
-  //     const data = await response.json();
-  //     console.log(data, 'Booking success data')
-  //     if (response.ok) {
-  //       alert('✅ Booking successful! Your slots have been reserved.');
-  //       setCartVisible(false);
-  //       // navigation.navigate('Slots');
-  //       await fetchGroundDetailsagain();
-  //       // Reset form and selection if needed
-  //       setSelectedSlots([]);
-  //       setName('');
-  //       setMobile('');
-  //       setPrice('');
-  //       setPrepaid('');
-  //       setPaymentStatus('pending');
-  //     } else {
-  //       alert('Booking failed: ' + (data.message || 'Unknown error'));
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //     alert('Error booking slots: ' + error.message);
-  //   }
-  // };
 
   const handleBooking = async (gid, selectSlots, selectDate) => {
-  console.log('DEBUG:', selectSlots, name, mobile);
 
-  if (selectSlots.length === 0 || !name || !mobile) {
-    alert('Please fill all required fields and select slots.');
-    return;
-  }
 
-  console.log('check1');
-  const storedUser = await AsyncStorage.getItem('userData');
-  const user = storedUser ? JSON.parse(storedUser) : null;
-
-  if (!user || !user.user || !user.user.id) {
-    alert('User not logged in or invalid user data');
-    return;
-  }
-
-  const user_id = user.user.id;
-  const formattedDate = selectDate.toISOString().slice(0, 10);
-
-  console.log('check2');
-  console.log(formattedDate, 'formatted date');
-
-  const payload = {
-    ground_id: gid,
-    slots: selectSlots.map(s => s.slot),
-    date: formattedDate,
-    name,
-    mobile: mobile.replace(/\D/g, ''),
-    comboPack: false,
-    price: Number(price),
-    prepaid: Number(prepaid),
-    user_id,
-  };
-
-  console.log(payload, '------------------payload---------------');
-
-  try {
-    const response = await fetch(`${BASE_URL}/booking/book-slot`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-    console.log(data, 'Booking success data');
-    if (response.ok) {
-      alert('✅ Booking successful! Your slots have been reserved.');
-      setCartVisible(false);
-      await fetchGroundDetailsagain();
-      setSelectedSlots([]);
-      setName('');
-      setMobile('');
-      setPrice('');
-      setPrepaid('');
-      setPaymentStatus('pending');
-    } else {
-      alert('Booking failed: ' + (data.message || 'Unknown error'));
+    if (selectSlots.length === 0 || !name || !mobile) {
+      alert('Please fill all required fields and select slots.');
+      return;
     }
-  } catch (error) {
-    console.log(error);
-    alert('Error booking slots: ' + error.message);
-  }
-};
+
+
+    const storedUser = await AsyncStorage.getItem('userData');
+    const user = storedUser ? JSON.parse(storedUser) : null;
+
+    if (!user || !user.user || !user.user.id) {
+      alert('User not logged in or invalid user data');
+      return;
+    }
+
+    const user_id = user.user.id;
+    const formattedDate = selectDate.toISOString().slice(0, 10);
+
+
+    const payload = {
+      ground_id: gid,
+      slots: selectSlots.map(s => s.slot),
+      date: formattedDate,
+      name,
+      mobile: mobile.replace(/\D/g, ''),
+      comboPack: false,
+      price: Number(price),
+      prepaid: Number(prepaid),
+      user_id,
+    };
+
+
+
+    try {
+      const response = await fetch(`${BASE_URL}/booking/book-slot`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('✅ Booking successful! Your slots have been reserved.');
+        setCartVisible(false);
+        await fetchGroundDetailsagain();
+        setSelectedSlots([]);
+        setName('');
+        setMobile('');
+        setPrice('');
+        setPrepaid('');
+        setPaymentStatus('pending');
+      } else {
+        alert('Booking failed: ' + (data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.log(error);
+      alert('Error booking slots: ' + error.message);
+    }
+  };
 
   const checkIfAnyPastSlot = () => {
     return selectedSlots.some(slot => isPastSlot(slot));
@@ -534,7 +437,7 @@ export default function GroundSlots({ route }) {
 
       const data = await response.json();
       setBookingDetails(data); // Store the booking details
-      console.log(bookingDetails?.data[0], '---------------bookingdetails---------------')
+
       setDetailsModalVisible(true); // Open modal
     } catch (error) {
       console.error("❌ Error fetching booking details:", error);
@@ -588,7 +491,7 @@ export default function GroundSlots({ route }) {
 
 
       const data = await response.json();
-      console.log('API Response:', data);
+
 
 
       if (data.success) {
@@ -623,7 +526,7 @@ export default function GroundSlots({ route }) {
     try {
       const bookingId = bookingDetails?.data[0]?.book?.booking_id;
       const groundId = bookingDetails?.data[0]?.ground_id;
-      console.log(bookingDetails.data[0].ground_id, bookingId, groundId, 'bookingid , groundid');
+
       const response = await fetch(
         //http://192.168.0.143:5000/api/booking/deletebooking?booking_id=BKG48HYW761X&ground_id=GNDTYMJ738ZY
         `${BASE_URL}/booking/deletebooking?booking_id=${bookingId}&ground_id=${groundId}`,
@@ -633,7 +536,7 @@ export default function GroundSlots({ route }) {
       );
 
       const data = await response.json();
-      console.log(data, 'canceldata')
+
       if (data.success) {
         Alert.alert('Booking Cancelled', data.message || 'Booking was cancelled');
         setDetailsModalVisible(false);
@@ -667,68 +570,32 @@ export default function GroundSlots({ route }) {
 
     </TouchableOpacity>
   );
-  {loading && (
-  <View style={styles.spinnerContainer}>
-    <ActivityIndicator size="large" color="#006849" />
-  </View>
-)}
+  {
+    loading && (
+      <View style={styles.spinnerContainer}>
+        <ActivityIndicator size="large" color="#006849" />
+      </View>
+    )
+  }
 
   return (
+    <View style={{ flex: 1 }}>
     <View style={styles.container}>
-      <View style={styles.header}>
-        {/* <Button mode="text" onPress={() => navigation.goBack()}>
-          ← Back
-        </Button> */}
-      </View>
-      {/* home intro */}
-      {/* <Text style={styles.appName}>
-        <Text style={[styles.appName, { color: '#006849' }]}>Pick Your </Text>
-        <Text style={[styles.appName, { color: '#000' }]}>Ground</Text>
-      </Text>
-      {grounddetails?.photo?.length > 0 && grounddetails?.photo?.length > 0 && (
-      
-              <Image
-                source={{ uri: `${IMAGE_BASE_URL}/logo.PNG` }}
-                style={styles.mainImage}
-                resizeMode="cover"
-              />
-            )} */}
-
-      {/* <View style={styles.imagesSection}>
-        <Text style={styles.sectionTitle}><Text style={[styles.sectionTitle, { color: '#006849' }]}>Pick Your </Text>
-          <Text style={[styles.sectionTitle, { color: '#000' }]}>Slot</Text></Text>
-        <FlatList
-          data={grounds}
-          keyExtractor={(item) => item._id}
-          horizontal
-          renderItem={renderImage}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 15 }}
-        />
-        <View style={styles.groundDetailsContainer}>
-          <Text style={styles.groundName}>
-            {grounds.length > 0 ? grounds[0].name : 'No Ground Found'}
-          </Text>
-          <Text style={styles.groundCity}>
-            {grounds.length > 0 ? grounds[0].description : ''}
-          </Text>
-          <Text style={styles.groundCity}>
-            {grounds.length > 0 ? grounds[0].city : ''}
-          </Text>
-        </View>
-
-
-   
+      {/* <View style={styles.header}>
 
       </View> */}
+    
       <View style={styles.dateRow}>
 
-        <View style={styles.datepickerfield}>
-          {(
+        <View style={styles.datepickerfield} >
+          <TouchableOpacity style={styles.button} onPress={() => setShowPicker(true)} >
+            <Text style={styles.calenderbutton}>Select Date</Text>
+          </TouchableOpacity>
+          {showPicker && (
             <DateTimePicker
               value={selectedDate}
               mode="date"
-              display="default"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={onChangeDate}
             />
           )}
@@ -736,22 +603,27 @@ export default function GroundSlots({ route }) {
             <Text style={styles.dateText}>Selected Date: {selectedDate.toDateString()}</Text>
           </TouchableOpacity>
         </View>
-        <View>
-          <TouchableOpacity onPress={fetchGroundDetailsagain} style={styles.refreshButton}>
-            <Icon name="refresh" size={20} color="#fff" />
+        <View > 
+          <TouchableOpacity onPress={fetchGroundDetailsagain}  style={styles.refreshButton} >
+            <Icon name="refresh" size={25} color="#fff" />
+          </TouchableOpacity>
+           <TouchableOpacity onPress={() => setShowPicker(true)}>
+            <Text style={{marginLeft:50}}>Refresh</Text>
           </TouchableOpacity>
         </View>
+        
       </View>
 
       <View style={styles.row}>
         <View style={styles.column}>
           <Text style={styles.subtitle}>Available</Text>
           <ScrollView contentContainerStyle={[styles.grid, { paddingBottom: 200 }]} showsVerticalScrollIndicator={false} >
-            {filteredAvailableSlots?.length ? (
+            {filteredAvailableSlots?.filter(slot => !bookedslotsbydate.includes(slot.slot)).length > 0 ? (
               filteredAvailableSlots
                 .filter(slot => !bookedslotsbydate.includes(slot.slot)) // Exclude booked
                 .map((slot) => {
                   const timeRange = getSlotTimeRange(slot.slot);
+                  console.log(timeRange,'timeRange')
                   const isSelected = selectedSlots.some(s => s.slot === slot.slot); // ✅ Fix here
 
                   return (
@@ -830,24 +702,7 @@ export default function GroundSlots({ route }) {
         </TouchableOpacity>
       )}
 
-      {/* <Modal
-        visible={cartVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setCartVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Selected Slots</Text>
-            <Text style={{ marginVertical: 10, fontWeight: '600', fontSize: 16 }}>
-              {formatSelectedSlotsDuration(selectedSlots)}
-            </Text>
-           
-            <Button mode="contained" onPress={() => setCartVisible(false)} style={styles.buttoncolor}>Close</Button>
-          </View>
-        </View>
-        isPastSlot
-      </Modal> */}
+  
 
       <Modal
         visible={cartVisible}
@@ -984,51 +839,7 @@ export default function GroundSlots({ route }) {
 
 
 
-      {/* displaying booking modal details */}
-      {/* <Modal
-  visible={detailsModalVisible}
-  transparent
-  animationType="slide"
-  onRequestClose={() => setDetailsModalVisible(false)}
->
-  <View style={styles.modalBackground}>
-    <View style={styles.cardContainer}>
-      {bookingDetails ? (
-        <>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>📋 Booking Details</Text>
-          </View>
-
-          <View style={styles.cardBody}>
-            <View style={{display: 'flex'}}>
-  <Text style={styles.cardText}>  <MaterialIcons name="calendar-today" size={18} color="#006849" /> Date: {bookingDetails?.data[0]?.date}</Text>
-    <Text style={styles.cardText}>   <MaterialCommunityIcons name="identifier" size={18} color="#006849" /> Booking ID: {bookingDetails?.data[0]?.book?.booking_id}</Text>
-            </View>
-          
-            <Text style={styles.cardText}>
-               <MaterialIcons name="access-time" size={18} color="#006849" /> Slot:{' '}
-              {formatSelectedSlotsDuration(
-                bookingDetails?.data[0]?.slots?.map(slot => ({ slot }))
-              )}
-            </Text>
-          
-            <Text style={styles.cardText}> <FontAwesome name="rupee" size={18} color="#006849" /> Price: ₹{bookingDetails?.data[0]?.book?.price}</Text>
-            <Text style={styles.cardText}><FontAwesome name="user" size={18} color="#006849" /> Name: {bookingDetails?.data[0]?.name}</Text>
-            <Text style={styles.cardText}> <FontAwesome name="phone" size={18} color="#006849" /> Number: {bookingDetails?.data[0]?.mobile}</Text>
-          </View>
-
-          <View style={styles.cardFooter}>
-            <Button mode="contained" onPress={() => setDetailsModalVisible(false)}>
-              Close
-            </Button>
-          </View>
-        </>
-      ) : (
-        <Text style={styles.loadingText}>Loading...</Text>
-      )}
-    </View>
-  </View>
-</Modal> */}
+    
 
       <Modal
         visible={detailsModalVisible}
@@ -1196,11 +1007,13 @@ export default function GroundSlots({ route }) {
         </View>
       </Modal>
     </View >
+     <Footer/>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 10, backgroundColor: '#fff' },
+  container: { flex: 1, paddingTop: 0, backgroundColor: '#fff' },
   header: { position: 'absolute', top: -40, right: 10, zIndex: 1 },
   dateText: { fontSize: 14, fontWeight: '400', margin: 10 },
   subtitle: { fontSize: 16, fontWeight: '600', textAlign: 'center', marginBottom: 8 },
@@ -1209,7 +1022,43 @@ const styles = StyleSheet.create({
   grid: { alignItems: 'center', paddingBottom: 20 },
   slotWrapper: { width: '100%', marginBottom: 10, alignItems: 'center' },
   availableSlot: { backgroundColor: '#006849', width: '100%' },
-  buttonText: { color: 'white' },
+   bookedSlot: {
+    backgroundColor: '#dc3545',
+    color: '#fff',
+    paddingVertical: 10,
+    paddingHorizontal: 0,
+    borderRadius: 8,
+    textAlign: 'center',
+    width: '100%',
+   
+  ...Platform.select({
+    ios: {
+      // iOS-specific styles
+      fontWeight: '500',
+       fontSize: 16,
+    },
+    android: {
+      // Android-specific styles
+      fontWeight: '100',
+      fontSize: 12,
+    },
+  }),
+  },
+  buttonText: { color: 'white',
+     ...Platform.select({
+    ios: {
+      // iOS-specific styles
+      fontSize: 16,
+      fontWeight:'500'
+    },
+    android: {
+      // Android-specific styles
+      fontSize: 12,
+      fontWeight:'100'
+    },
+  }),
+   },
+  calenderbutton: { color: '#fff',fontSize: 14, fontWeight: '400', marginLeft: 10 },
   buttoncolor: { backgroundColor: '#006849' },
   buttonGroup: {
     flexDirection: 'row',
@@ -1220,12 +1069,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 10,
+    backgroundColor: '#f9f9f9',
   },
   refreshButton: {
-    marginLeft: 10,
+    marginLeft: 50,
     padding: 10,
     borderRadius: 5,
     backgroundColor: '#006849',
+    alignItems:'center'
   },
   modalBackground: {
     flex: 1,
@@ -1337,22 +1188,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
 
-  bookedSlot: {
-    backgroundColor: '#dc3545',
-    color: '#fff',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    textAlign: 'center',
-    width: '100%',
-    fontWeight: '500',
-  },
+ 
   noSlots: { textAlign: 'center', color: '#999', marginTop: 20 },
   datepickerfield: { margin: 10 },
   cartButton: {
     position: 'absolute',
-    bottom: 30,
-    right: 20,
+    bottom: 40,
+    right: 40,
     backgroundColor: '#fff',
     padding: 10,
     borderRadius: 30,
@@ -1360,8 +1202,8 @@ const styles = StyleSheet.create({
   },
 
   cartIcon: {
-    width: 30,
-    height: 30,
+    width: 50,
+    height: 50,
     tintColor: '#006849', // optional: tint the icon green
   },
 
@@ -1550,17 +1392,22 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   spinnerContainer: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  height: '100%',
-  width: '100%',
-  backgroundColor: 'rgba(0,0,0,0.2)',
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 999, // ensures it's above other components
-}
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: '100%',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999, // ensures it's above other components
+  },
+   button: {
+    backgroundColor: '#006849', //#006849
+    paddingVertical: 12 ,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
 
-  ////////intro//////////
 
 });

@@ -3,9 +3,12 @@
 import React from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
+import Footer from '../Footer';
 const IMAGE_BASE_URL = `https://pickyourground.com/uploads`;
+ const currentYear = new Date().getFullYear();
 export default function CustomDrawer(props) {
   return (
+     <View style={{ flex: 1 }}>
     <DrawerContentScrollView {...props}>
       <View style={styles.logoContainer}>
         <Image
@@ -21,6 +24,8 @@ export default function CustomDrawer(props) {
       </View>
       <DrawerItemList {...props} />
     </DrawerContentScrollView>
+    <Footer/>
+    </View>
   );
 }
 
@@ -49,5 +54,16 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 14,
     color: '#777',
+  },
+   footer: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
+    backgroundColor: '#f9f9f9',
+    alignItems: 'center',
+  },
+  footerText: {
+    color: '#999',
+    fontSize: 12,
   },
 });
